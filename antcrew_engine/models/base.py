@@ -150,14 +150,23 @@ class BaseLLM(ABC):
                 return (input_tokens * in_cost + output_tokens * out_cost) / 1_000_000
         return 0.0
 
-    def _record_usage(self, input_tokens: int, output_tokens: int) -> None:
+    def _record_usage(
+        self,
+        input_tokens: int,
+        output_tokens: int,
+        *,
+        cache_read: int = 0,
+        cache_write: int = 0,
+    ) -> None:
         """Call this at the end of every successful complete() to track usage."""
         self._usage_log.append({
-            "agent":         self.current_agent,
-            "model":         self._model_name() or "unknown",
-            "input_tokens":  input_tokens,
-            "output_tokens": output_tokens,
-            "cost_usd":      round(self._estimate_cost(input_tokens, output_tokens), 6),
+            "agent":              self.current_agent,
+            "model":              self._model_name() or "unknown",
+            "input_tokens":       input_tokens,
+            "output_tokens":      output_tokens,
+            "cache_read_tokens":  cache_read,
+            "cache_write_tokens": cache_write,
+            "cost_usd":           round(self._estimate_cost(input_tokens, output_tokens), 6),
         })
 
     def get_usage_summary(self) -> dict:
@@ -165,16 +174,20 @@ class BaseLLM(ABC):
         log = self._usage_log
         if not log:
             return {
-                "total_input_tokens":  0,
-                "total_output_tokens": 0,
-                "total_cost_usd":      0.0,
-                "by_agent":            [],
+                "total_input_tokens":       0,
+                "total_output_tokens":      0,
+                "total_cache_read_tokens":  0,
+                "total_cache_write_tokens": 0,
+                "total_cost_usd":           0.0,
+                "by_agent":                 [],
             }
         return {
-            "total_input_tokens":  sum(e["input_tokens"]  for e in log),
-            "total_output_tokens": sum(e["output_tokens"] for e in log),
-            "total_cost_usd":      round(sum(e["cost_usd"] for e in log), 6),
-            "by_agent":            list(log),
+            "total_input_tokens":       sum(e["input_tokens"]  for e in log),
+            "total_output_tokens":      sum(e["output_tokens"] for e in log),
+            "total_cache_read_tokens":  sum(e.get("cache_read_tokens",  0) for e in log),
+            "total_cache_write_tokens": sum(e.get("cache_write_tokens", 0) for e in log),
+            "total_cost_usd":           round(sum(e["cost_usd"] for e in log), 6),
+            "by_agent":                 list(log),
         }
 
     # ── Retry ────────────────────────────────────────────────────────────────

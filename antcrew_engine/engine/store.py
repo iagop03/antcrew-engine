@@ -239,3 +239,125 @@ class FilesystemStore:
 
     def __repr__(self) -> str:
         return f"FilesystemStore({self._root})"
+
+
+# ---------------------------------------------------------------------------
+# MultiRepoStore
+# ---------------------------------------------------------------------------
+
+class MultiRepoStore:
+    """Routes artifact writes to different directories based on file_path prefix.
+
+    ``repos`` maps logical repo names to root directories.
+    ``routes`` maps file_path prefixes to repo names; longest prefix wins.
+    ``default`` is the fallback repo name for artifacts that match no route.
+
+    Example::
+
+        store = MultiRepoStore(
+            repos={
+                "backend":  Path("/repos/api"),
+                "frontend": Path("/repos/ui"),
+                "shared":   Path("/repos/shared"),
+            },
+            routes={
+                "src/api/": "backend",
+                "src/ui/":  "frontend",
+            },
+            default="shared",
+        )
+    """
+
+    def __init__(
+        self,
+        repos:   "dict[str, str | Path]",
+        routes:  "dict[str, str]",
+        default: str,
+    ) -> None:
+        self._stores: dict[str, FilesystemStore] = {
+            name: FilesystemStore(path) for name, path in repos.items()
+        }
+        if default not in self._stores:
+            raise ValueError(f"default repo '{default}' not in repos: {list(repos)}")
+        self._default = default
+        # Sort by descending prefix length so longest match wins
+        self._routes: list[tuple[str, str]] = sorted(
+            routes.items(), key=lambda kv: -len(kv[0])
+        )
+
+    # ------------------------------------------------------------------
+    # Routing
+    # ------------------------------------------------------------------
+
+    def _route(self, file_path: str) -> FilesystemStore:
+        for prefix, repo_name in self._routes:
+            if file_path.startswith(prefix):
+                store = self._stores.get(repo_name)
+                if store is not None:
+                    return store
+        return self._stores[self._default]
+
+    def _route_artifact(self, artifact: Artifact) -> FilesystemStore:
+        return self._route(artifact.metadata.get("file_path") or str(artifact.id))
+
+    # ------------------------------------------------------------------
+    # Protocol implementation
+    # ------------------------------------------------------------------
+
+    def write(self, artifact: Artifact) -> None:
+        self._route_artifact(artifact).write(artifact)
+
+    def read(self, id: ArtifactId) -> Artifact | None:
+        for store in self._stores.values():
+            art = store.read(id)
+            if art is not None:
+                return art
+        return None
+
+    def delete(self, id: ArtifactId) -> None:
+        for store in self._stores.values():
+            store.delete(id)
+
+    def list(self, kind: ArtifactKind | None = None) -> list[Artifact]:
+        seen: set[str] = set()
+        results: list[Artifact] = []
+        for store in self._stores.values():
+            for art in store.list(kind):
+                key = str(art.id)
+                if key not in seen:
+                    seen.add(key)
+                    results.append(art)
+        return results
+
+    def has(self, id: ArtifactId) -> bool:
+        return any(s.has(id) for s in self._stores.values())
+
+    def apply(self, delta: ArtifactDelta) -> None:
+        for artifact in delta.created:
+            self.write(artifact)
+        for artifact in delta.modified:
+            self.write(artifact)
+        for aid in delta.deleted:
+            self.delete(aid)
+        for old_id, new_id in delta.renamed:
+            old = self.read(old_id)
+            if old is not None:
+                self.write(dataclasses.replace(old, id=new_id, location=None))
+            self.delete(old_id)
+
+    def filesystem_path(self) -> "Path | None":
+        return None
+
+    def stores(self) -> "dict[str, FilesystemStore]":
+        """Return the underlying per-repo stores by name."""
+        return dict(self._stores)
+
+    def __len__(self) -> int:
+        seen: set[str] = set()
+        for store in self._stores.values():
+            seen.update(str(a.id) for a in store.list())
+        return len(seen)
+
+    def __repr__(self) -> str:
+        repos = {name: str(s.root) for name, s in self._stores.items()}
+        return f"MultiRepoStore({repos})"

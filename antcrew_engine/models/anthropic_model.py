@@ -78,7 +78,12 @@ class AnthropicModel(BaseLLM):
 
     def _blocking_complete(self, kwargs: dict) -> str:
         response = self._client.messages.create(**kwargs)
-        self._record_usage(self._total_input(response.usage), response.usage.output_tokens)
+        self._record_usage(
+            self._total_input(response.usage),
+            response.usage.output_tokens,
+            cache_read=getattr(response.usage, "cache_read_input_tokens", 0) or 0,
+            cache_write=getattr(response.usage, "cache_creation_input_tokens", 0) or 0,
+        )
         if response.stop_reason == "max_tokens":
             u = response.usage
             raise RuntimeError(
@@ -95,7 +100,12 @@ class AnthropicModel(BaseLLM):
                 self.on_token(text)  # type: ignore[misc]
                 chunks.append(text)
             final = stream.get_final_message()
-            self._record_usage(self._total_input(final.usage), final.usage.output_tokens)
+            self._record_usage(
+                self._total_input(final.usage),
+                final.usage.output_tokens,
+                cache_read=getattr(final.usage, "cache_read_input_tokens", 0) or 0,
+                cache_write=getattr(final.usage, "cache_creation_input_tokens", 0) or 0,
+            )
             if final.stop_reason == "max_tokens":
                 u = final.usage
                 raise RuntimeError(

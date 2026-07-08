@@ -276,7 +276,8 @@ def run(
         border_style="cyan",
     ))
 
-    _run_cost = {"total": 0.0}
+    _run_cost  = {"total": 0.0}
+    _run_cache = {"read": 0, "write": 0}
 
     def _on_dispatch(event) -> None:
         console.print(f"  [cyan]>[/] [bold]{event.capability_name}[/]")
@@ -284,11 +285,16 @@ def run(
     def _on_complete(event) -> None:
         ok = event.result is None or event.result.succeeded
         status = "[green]ok[/]" if ok else "[red]fail[/]"
-        t = event.result.execution_time if event.result else 0.0
-        c = event.result.cost_usd if event.result else 0.0
-        _run_cost["total"] += c
-        cost_str = f" [dim]${c:.4f} ∑${_run_cost['total']:.4f}[/]" if c else ""
-        console.print(f"  {status} [dim]{event.capability_name}[/] ({t:.1f}s){cost_str}")
+        t  = event.result.execution_time if event.result else 0.0
+        c  = event.result.cost_usd       if event.result else 0.0
+        cr = event.result.cache_read_tokens  if event.result else 0
+        cw = event.result.cache_write_tokens if event.result else 0
+        _run_cost["total"]  += c
+        _run_cache["read"]  += cr
+        _run_cache["write"] += cw
+        cost_str  = f" [dim]${c:.4f} ∑${_run_cost['total']:.4f}[/]" if c else ""
+        cache_str = f" [blue]↓{cr:,}r ↑{cw:,}w[/]" if (cr or cw) else ""
+        console.print(f"  {status} [dim]{event.capability_name}[/] ({t:.1f}s){cost_str}{cache_str}")
 
     def _on_satisfied(event) -> None:
         console.print(f"  [green]condition:[/] {event.condition_id}")
@@ -312,6 +318,15 @@ def run(
         written = _write_output(store, output)
 
     _print_summary(store, output, written)
+    total_r = _run_cache["read"]
+    total_w = _run_cache["write"]
+    if total_r or total_w:
+        total_cache = total_r + total_w
+        hit_pct = f" ({100 * total_r // total_cache}% hit)" if total_cache else ""
+        console.print(
+            f"[dim]Cache: [blue]{total_r:,}[/] tokens read, "
+            f"[cyan]{total_w:,}[/] written{hit_pct}[/]"
+        )
     console.print(f"\n[green bold]Done.[/] {len(final_state.satisfied)} condition(s) satisfied.")
 
 

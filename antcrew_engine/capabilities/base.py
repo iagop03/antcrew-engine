@@ -124,27 +124,38 @@ class BaseExecutor:
 
     def execute(self, store: "ArtifactStore", goal: "Goal") -> CapabilityResult:
         t0 = time.monotonic()
-        cost_before = (
-            self._llm.get_usage_summary()["total_cost_usd"] if self._llm else 0.0
-        )
+        _before = self._llm.get_usage_summary() if self._llm else {}
+        cost_before        = _before.get("total_cost_usd", 0.0)
+        cache_read_before  = _before.get("total_cache_read_tokens", 0)
+        cache_write_before = _before.get("total_cache_write_tokens", 0)
+
         try:
             result = self._run(store, goal)
-            elapsed  = time.monotonic() - t0
-            cost_usd = round(
-                self._llm.get_usage_summary()["total_cost_usd"] - cost_before, 6
-            ) if self._llm else 0.0
+            elapsed = time.monotonic() - t0
+
+            if self._llm:
+                _after = self._llm.get_usage_summary()
+                cost_usd    = round(_after["total_cost_usd"] - cost_before, 6)
+                cache_read  = _after.get("total_cache_read_tokens",  0) - cache_read_before
+                cache_write = _after.get("total_cache_write_tokens", 0) - cache_write_before
+            else:
+                cost_usd = cache_read = cache_write = 0
 
             clean_delta, syntax_errors = _filter_python_delta(result.delta)
             if syntax_errors:
                 return CapabilityResult(
-                    delta          = clean_delta,
-                    errors         = result.errors + syntax_errors,
-                    execution_time = elapsed,
-                    cost_usd       = cost_usd,
+                    delta              = clean_delta,
+                    errors             = result.errors + syntax_errors,
+                    execution_time     = elapsed,
+                    cost_usd           = cost_usd,
+                    cache_read_tokens  = cache_read,
+                    cache_write_tokens = cache_write,
                 )
 
-            result.execution_time = elapsed
-            result.cost_usd       = cost_usd
+            result.execution_time     = elapsed
+            result.cost_usd           = cost_usd
+            result.cache_read_tokens  = cache_read
+            result.cache_write_tokens = cache_write
             return result
         except Exception as exc:
             return CapabilityResult(

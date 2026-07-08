@@ -48,7 +48,7 @@ from .selector import (
     CapabilitySelector, CheapestFirst, FirstMatch, MostProductive, PrioritySelector,
 )
 from .state import ProjectState
-from .store import ArtifactStore, MemoryStore, FilesystemStore
+from .store import ArtifactStore, MemoryStore, FilesystemStore, MultiRepoStore
 from .validator import Validator, ValidatorResult
 from .bus_bridge import EventBusBridge
 
@@ -56,7 +56,7 @@ __all__ = [
     # artifact
     "Artifact", "ArtifactId", "ArtifactKind", "ArtifactDelta", "EMPTY_DELTA",
     # store
-    "ArtifactStore", "MemoryStore", "FilesystemStore",
+    "ArtifactStore", "MemoryStore", "FilesystemStore", "MultiRepoStore",
     # goal
     "Condition", "ConditionId", "DesiredProjectState", "Constraints", "Goal",
     # state

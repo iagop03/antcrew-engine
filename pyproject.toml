@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "antcrew-engine"
+version = "0.1.0"
+description = "Capability-driven autonomous project execution engine (antcrew Layer 2)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Iago Pueyo", email = "iago.pueyo99@gmail.com" }]
+keywords = ["ai", "agents", "llm", "engine", "capabilities", "autonomous", "anthropic"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "rich>=13.0",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.30"]
+openai    = ["openai>=1.30"]
+groq      = ["groq>=0.9"]
+gemini    = []   # GeminiModel uses httpx — add httpx>=0.27 if not already present
+dev       = ["pytest", "pytest-asyncio", "ruff", "anthropic>=0.30"]
+all       = ["anthropic>=0.30", "openai>=1.30", "groq>=0.9", "httpx>=0.27"]
+
+[project.scripts]
+antcrew-engine = "antcrew_engine.cli:app"
+
+[project.urls]
+Homepage   = "https://github.com/iagop03/antcrew"
+Repository = "https://github.com/iagop03/antcrew"
+
+[tool.hatch.build.targets.wheel]
+packages = ["antcrew_engine"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+testpaths = ["tests"]

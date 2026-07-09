@@ -57,7 +57,12 @@ def build_llm(model_str: str, *, prompt_caching: bool = False) -> BaseLLM:
         from antcrew_engine.models.gemini_model import GeminiModel
         return GeminiModel()
 
-    # Default: Anthropic / Claude
+    # Default: Anthropic / Claude (model strings starting with "claude" or the bare "anthropic")
+    if not (s.startswith("claude") or s == "anthropic"):
+        raise ValueError(
+            f"Unknown model: {model_str!r}. "
+            "Supported prefixes: claude, gpt, o1, o3, openai:, ollama:, groq:, azure:, gemini, simulated."
+        )
     from antcrew_engine.models.anthropic_model import AnthropicModel
     model_id = None if s in ("claude", "anthropic") else s
     return AnthropicModel(

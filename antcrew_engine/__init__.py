@@ -43,7 +43,11 @@ from antcrew_engine.capabilities import (
 )
 from antcrew_engine.config import build_llm
 
-__version__ = "0.2.0"
+try:
+    from importlib.metadata import version as _v
+    __version__: str = _v("antcrew-engine")
+except Exception:
+    __version__ = "unknown"
 
 __all__ = [
     # engine

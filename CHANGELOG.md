@@ -2,6 +2,38 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.2] — 2026-07-09
+
+### Fixed
+- `__version__` now reads dynamically from installed package metadata so it always matches the installed release.
+- CI: `ANTCREW_SANDBOX=none` env var prevents test-runner from launching Docker on CI runners where the host Python path doesn't exist inside the container.
+- `pypa/gh-action-pypi-publish` configured with `skip_existing: true` so workflow re-runs don't fail if a file was already uploaded.
+
+### Changed
+- Publish workflow uses `PYPI_API_TOKEN` secret instead of OIDC Trusted Publishing.
+
+---
+
+## [0.3.1] — 2026-07-09
+
+### Fixed
+- `build_llm`: raises `ValueError` for unrecognised model strings before attempting any API call — previously fell through to `AnthropicModel` and raised `EnvironmentError: ANTHROPIC_API_KEY not set` for non-Anthropic model names.
+- `GroqModel`: lazy-imported so CI environments without the `groq` package don't fail on import.
+- Test assertions corrected: SpyLLM captures the `system` prompt (where architecture is injected) rather than the `user` message.
+
+---
+
+## [0.3.0] — 2026-07-09
+
+### Added
+- **Docker sandbox (escalón 0)** — `TestRunner` can run generated tests inside a temporary Docker container (`ANTCREW_SANDBOX=docker`). Falls back to direct subprocess when Docker is unavailable. Controlled via `ANTCREW_SANDBOX` env var (`auto` | `docker` | `none`).
+
+### Changed
+- `Operator` → `EngineLoop`, `OperatorDecision` → `EngineDecision`, `OperatorError` → `EngineLoopError`. Old names re-exported for backward compatibility.
+- Diff preview now works correctly for `MultiRepoStore` with `--from-dir`.
+
+---
+
 ## [0.2.0] — 2026-07-09
 
 ### Added

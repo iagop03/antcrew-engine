@@ -19,7 +19,8 @@ from rich.table import Table
 from antcrew_engine.engine import (
     Artifact, ArtifactId, ArtifactKind,
     CapabilityRegistry, Condition, ConditionId, Constraints,
-    DesiredProjectState, EventLog, FilesystemStore, Goal, MemoryStore, Operator,
+    DesiredProjectState, EventLog, FilesystemStore, Goal, MemoryStore,
+    MultiRepoStore, Operator,
 )
 from antcrew_engine.capabilities import (
     Architect, BugFixer, CodeGenerator, CodeRegenerator, CodeReviewer,
@@ -170,6 +171,101 @@ def _load_goal_meta(output) -> "dict | None":
         return None
 
 
+_SKIP_DIRS = frozenset([".antcrew", "__pycache__", "venv", ".venv", ".git", "node_modules"])
+
+
+def _load_existing_codebase(store, source_dir: Path, goal_description: str) -> int:
+    """Seed the store with an existing project's source files + stub planning artifacts.
+
+    Writes stub requirements/architecture/task_graph so the engine skips
+    planning phases and jumps straight to the requested capability.
+    """
+    loaded = 0
+    for src_file in sorted(source_dir.rglob("*")):
+        if not src_file.is_file():
+            continue
+        try:
+            rel = src_file.relative_to(source_dir)
+        except ValueError:
+            continue
+        if any(part in _SKIP_DIRS for part in rel.parts):
+            continue
+        rel_str = str(rel).replace("\\", "/")
+        suffix  = src_file.suffix.lower()
+        kind = (
+            ArtifactKind.SOURCE if suffix == ".py"
+            else ArtifactKind.TEST if suffix in (".test.py", ".spec.py")
+            else ArtifactKind.DOCUMENTATION if suffix in (".md", ".rst", ".txt")
+            else ArtifactKind.CONFIG if suffix in (".toml", ".yaml", ".yml", ".json", ".cfg", ".ini")
+            else ArtifactKind.GENERIC
+        )
+        try:
+            content = src_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        store.write(Artifact(
+            id=ArtifactId(f"src/{rel_str}"),
+            kind=kind,
+            content=content,
+            metadata={"file_path": rel_str, "source": "from_dir"},
+        ))
+        loaded += 1
+
+    # Stub planning artifacts — engine sees these as satisfied and skips them
+    stub_arch = (
+        f"# Architecture\n\nExisting codebase loaded from `{source_dir}`.\n\n"
+        f"Goal: {goal_description}"
+    )
+    for art_id, kind, stub_fp, content in [
+        ("requirements", ArtifactKind.REQUIREMENTS, ".antcrew/requirements.md",
+         f"# Requirements\n\nExisting project.\nGoal: {goal_description}"),
+        ("architecture", ArtifactKind.ARCHITECTURE, ".antcrew/architecture.md", stub_arch),
+        ("task_graph",   ArtifactKind.TASK_GRAPH,   ".antcrew/task_graph.json",
+         json.dumps({"tasks": [{"id": "existing", "description": goal_description, "status": "done"}]})),
+    ]:
+        store.write(Artifact(
+            id=ArtifactId(art_id),
+            kind=kind,
+            content=content,
+            metadata={"file_path": stub_fp},
+        ))
+    return loaded
+
+
+def _build_store(
+    output:   Optional[Path],
+    repos:    list[str],
+    routes:   list[str],
+) -> "MemoryStore | FilesystemStore | MultiRepoStore":
+    """Build the right ArtifactStore from CLI flags.
+
+    --output            → FilesystemStore
+    --repo + --route    → MultiRepoStore (requires at least one --repo)
+    (none)              → MemoryStore
+    """
+    if repos:
+        parsed_repos: dict[str, Path] = {}
+        for spec in repos:
+            if ":" not in spec:
+                console.print(f"[red]--repo must be name:path, got: {spec!r}[/]")
+                raise typer.Exit(code=1)
+            name, _, path_str = spec.partition(":")
+            parsed_repos[name.strip()] = Path(path_str.strip())
+        parsed_routes: dict[str, str] = {}
+        for spec in routes:
+            if ":" not in spec:
+                console.print(f"[red]--route must be prefix:name, got: {spec!r}[/]")
+                raise typer.Exit(code=1)
+            prefix, _, name = spec.partition(":")
+            parsed_routes[prefix.strip()] = name.strip()
+        # default repo = first one listed
+        default_repo = next(iter(parsed_repos))
+        return MultiRepoStore(repos=parsed_repos, routes=parsed_routes, default=default_repo)
+    if output is not None:
+        return FilesystemStore(output)
+    return MemoryStore()
+
+
 def _write_output(store: MemoryStore, output_dir: Path) -> list[Path]:
     written: list[Path] = []
     for kind in (ArtifactKind.SOURCE, ArtifactKind.TEST,
@@ -218,6 +314,12 @@ def run(
                                                help="YAML with per-capability model overrides."),
     output:    Optional[Path] = typer.Option(None, "--output", "-o",
                                              help="Directory for artifacts (enables FilesystemStore)."),
+    from_dir:  Optional[Path] = typer.Option(None, "--from-dir",
+                                             help="Load an existing codebase from this directory."),
+    repo:   list[str] = typer.Option([], "--repo",
+                                     help="Multi-repo: 'name:path'. Repeat for each repo."),
+    route:  list[str] = typer.Option([], "--route",
+                                     help="Multi-repo route: 'src/api/:backend'. Repeat."),
     tech:      list[str] = typer.Option([], "--tech", "-t"),
     condition: list[str] = typer.Option([], "--condition", "-c"),
     full:      bool = typer.Option(True, "--full/--plan-only"),
@@ -245,12 +347,20 @@ def run(
         console.print("[red]Provide a GOAL or use --resume with a prior --output dir.[/]")
         raise typer.Exit(code=1)
 
+    if from_dir is not None and not from_dir.is_dir():
+        console.print(f"[red]--from-dir: directory not found:[/] {from_dir}")
+        raise typer.Exit(code=1)
+
     prompt_caching = not no_cache
     llm  = _build_llm(model, prompt_caching=prompt_caching)
     cap_models, cap_caching = _parse_capability_config(config_file)
-    goal = _build_goal(goal_description, tuple(tech), condition, full)
-    store = FilesystemStore(output) if output is not None else MemoryStore()
-    log  = EventLog()
+    goal  = _build_goal(goal_description, tuple(tech), condition, full)
+    store = _build_store(output, list(repo), list(route))
+    log   = EventLog()
+
+    if from_dir is not None:
+        n = _load_existing_codebase(store, from_dir, goal_description)
+        console.print(f"[dim]Loaded {n} file(s) from[/] [bold]{from_dir}[/]")
     registry   = _build_registry(
         llm, model,
         capability_models=cap_models,
@@ -313,9 +423,12 @@ def run(
         _save_goal_meta(output, goal_description, list(tech), list(condition), full)
 
     written: list[Path] = []
-    if output is not None and isinstance(store, MemoryStore):
+    if isinstance(store, MemoryStore) and output is not None:
         output.mkdir(parents=True, exist_ok=True)
         written = _write_output(store, output)
+    elif isinstance(store, MultiRepoStore):
+        for repo_name, sub_store in store.stores().items():
+            console.print(f"  [dim]Repo '{repo_name}':[/] {sub_store.root}")
 
     _print_summary(store, output, written)
     total_r = _run_cache["read"]

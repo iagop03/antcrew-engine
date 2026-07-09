@@ -85,8 +85,8 @@ def _run_on_filesystem(
     root: Path, sources, tests, python: str, *, last_failed: bool = False
 ) -> subprocess.CompletedProcess:
     """Run pytest directly against the FilesystemStore root — no temp copy."""
-    _ensure_init_files(sources, root)
-    _ensure_init_files(tests, root)
+    _ensure_init_files(sources, root)   # source packages only — tests dir stays clean
+    _ensure_conftest(root)              # root conftest adds project dir to sys.path
     env  = {**os.environ, "PYTHONPATH": str(root)}
     args = [python, "-m", "pytest", str(root), "--tb=short", "-q",
             "--ignore=.antcrew", "--ignore=venv", "--ignore=.venv"]
@@ -107,6 +107,7 @@ def _run_in_tempdir(sources, tests, python: str) -> subprocess.CompletedProcess:
             capture_output=True,
             text=True,
             cwd=tmp,
+            env={**os.environ, "PYTHONPATH": str(root)},
         )
 
 
@@ -141,14 +142,24 @@ def _ensure_init_files(artifacts, root: Path) -> None:
             init.write_text("", encoding="utf-8")
 
 
+def _ensure_conftest(root: Path) -> None:
+    """Write a root conftest.py that adds the project dir to sys.path.
+
+    Skipped when one already exists (user-supplied conftest takes precedence).
+    """
+    conftest = root / "conftest.py"
+    if not conftest.exists():
+        conftest.write_text(
+            "import sys\nfrom pathlib import Path\n"
+            "sys.path.insert(0, str(Path(__file__).parent))\n",
+            encoding="utf-8",
+        )
+
+
 def _setup_project_structure(sources, root: Path) -> None:
-    """__init__.py for package dirs + sys.path conftest (MemoryStore path only)."""
+    """__init__.py for source package dirs + sys.path conftest (MemoryStore path)."""
     _ensure_init_files(sources, root)
-    (root / "conftest.py").write_text(
-        "import sys\nfrom pathlib import Path\n"
-        "sys.path.insert(0, str(Path(__file__).parent))\n",
-        encoding="utf-8",
-    )
+    _ensure_conftest(root)
 
 
 def _write_artifacts(artifacts, root: Path) -> None:

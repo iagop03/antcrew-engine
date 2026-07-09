@@ -23,7 +23,7 @@ CLI entry point (installed as ``antcrew-engine``)::
 """
 from antcrew_engine.engine import (
     Artifact, ArtifactId, ArtifactKind, ArtifactDelta, EMPTY_DELTA,
-    ArtifactStore, MemoryStore, FilesystemStore,
+    ArtifactStore, MemoryStore, FilesystemStore, MultiRepoStore,
     Condition, ConditionId, DesiredProjectState, Constraints, Goal,
     ProjectState,
     CapabilityDescriptor, CapabilityResult, Executor,
@@ -41,12 +41,12 @@ from antcrew_engine.capabilities import (
 )
 from antcrew_engine.config import build_llm
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     # engine
     "Artifact", "ArtifactId", "ArtifactKind", "ArtifactDelta", "EMPTY_DELTA",
-    "ArtifactStore", "MemoryStore", "FilesystemStore",
+    "ArtifactStore", "MemoryStore", "FilesystemStore", "MultiRepoStore",
     "Condition", "ConditionId", "DesiredProjectState", "Constraints", "Goal",
     "ProjectState",
     "CapabilityDescriptor", "CapabilityResult", "Executor",

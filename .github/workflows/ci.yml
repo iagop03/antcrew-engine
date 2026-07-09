@@ -26,3 +26,5 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/ -q --tb=short
+        env:
+          ANTCREW_SANDBOX: none   # host Python path doesn't exist inside Docker image

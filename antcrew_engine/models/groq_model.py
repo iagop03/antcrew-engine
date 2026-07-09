@@ -3,7 +3,10 @@
 import os
 from typing import Optional
 
-from groq import Groq
+try:
+    from groq import Groq  # type: ignore[import]
+except ImportError:
+    Groq = None  # type: ignore[assignment,misc]
 
 from antcrew_engine.models.base import BaseLLM, Message
 
@@ -22,6 +25,11 @@ class GroqModel(BaseLLM):
         model: str = _DEFAULT_MODEL,
         api_key: Optional[str] = None,
     ) -> None:
+        if Groq is None:
+            raise ImportError(
+                "groq package is required for GroqModel. "
+                "Install it: pip install antcrew-engine[groq]"
+            )
         self.model = model
         key = api_key or os.environ.get("GROQ_API_KEY")
         if not key:

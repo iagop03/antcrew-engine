@@ -12,6 +12,7 @@ from antcrew_engine.engine import (
     CapabilityDescriptor, CapabilityResult, ConditionId,
 )
 from .base import BaseExecutor
+from antcrew_engine.engine import sandbox as _sandbox
 
 _MAX_OUTPUT = 4_000
 
@@ -84,7 +85,11 @@ class TestRunner(BaseExecutor):
 def _run_on_filesystem(
     root: Path, sources, tests, python: str, *, last_failed: bool = False
 ) -> subprocess.CompletedProcess:
-    """Run pytest directly against the FilesystemStore root — no temp copy."""
+    """Run pytest directly against the FilesystemStore root — no temp copy.
+
+    Uses DockerSandbox when available (ANTCREW_SANDBOX=auto|required).
+    Falls back to direct subprocess when Docker is absent and mode is 'auto'.
+    """
     _ensure_init_files(sources, root)   # source packages only — tests dir stays clean
     _ensure_conftest(root)              # root conftest adds project dir to sys.path
     env  = {**os.environ, "PYTHONPATH": str(root)}
@@ -92,22 +97,24 @@ def _run_on_filesystem(
             "--ignore=.antcrew", "--ignore=venv", "--ignore=.venv"]
     if last_failed:
         args.append("--lf")
-    return subprocess.run(args, capture_output=True, text=True, cwd=str(root), env=env)
+    return _sandbox.run(args, cwd=root, env=env)
 
 
 def _run_in_tempdir(sources, tests, python: str) -> subprocess.CompletedProcess:
-    """Write artifacts to a temp dir and run pytest there (MemoryStore path)."""
+    """Write artifacts to a temp dir and run pytest there (MemoryStore path).
+
+    Uses DockerSandbox when available (ANTCREW_SANDBOX=auto|required).
+    Falls back to direct subprocess when Docker is absent and mode is 'auto'.
+    """
     with tempfile.TemporaryDirectory(prefix="antcrew_run_") as tmp:
         root = Path(tmp)
         _write_artifacts(sources, root)
         _write_artifacts(tests, root)
         _setup_project_structure(sources, root)
-        return subprocess.run(
+        env = {**os.environ, "PYTHONPATH": str(root)}
+        return _sandbox.run(
             [python, "-m", "pytest", str(root), "--tb=short", "-q"],
-            capture_output=True,
-            text=True,
-            cwd=tmp,
-            env={**os.environ, "PYTHONPATH": str(root)},
+            cwd=root, env=env,
         )
 
 

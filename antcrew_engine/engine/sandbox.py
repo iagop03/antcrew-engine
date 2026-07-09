@@ -1,0 +1,199 @@
+"""Docker-based sandbox for executing untrusted generated code.
+
+Wraps a subprocess command in ``docker run --rm`` with hard resource limits.
+Falls back to direct execution when Docker is unavailable (with a warning).
+
+Control via environment variable ANTCREW_SANDBOX:
+  auto     (default) — use Docker if available, fall back to direct subprocess
+  required           — error if Docker is not available; never run unsandboxed
+  none               — skip Docker entirely, run direct subprocess always
+
+Resource defaults (all overridable per-call):
+  --memory=256m         process + stack cap
+  --memory-swap=256m    disable swap
+  --cpus=0.5            half a core
+  --pids-limit=256      prevent fork bombs
+  --network=none        no network during test execution
+  --security-opt=no-new-privileges
+"""
+from __future__ import annotations
+
+import logging
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Optional
+
+log = logging.getLogger(__name__)
+
+_AVAILABLE: Optional[bool] = None  # cached after first probe
+
+
+def is_available() -> bool:
+    """Return True if ``docker info`` exits 0.  Result is cached per process."""
+    global _AVAILABLE
+    if _AVAILABLE is None:
+        if shutil.which("docker") is None:
+            _AVAILABLE = False
+        else:
+            try:
+                r = subprocess.run(
+                    ["docker", "info"],
+                    capture_output=True,
+                    timeout=5,
+                )
+                _AVAILABLE = r.returncode == 0
+            except Exception:
+                _AVAILABLE = False
+        if not _AVAILABLE:
+            log.debug("sandbox: Docker not available — will run unsandboxed")
+    return _AVAILABLE
+
+
+def _mode() -> str:
+    return os.environ.get("ANTCREW_SANDBOX", "auto").lower()
+
+
+def _docker_image() -> str:
+    """Match major.minor of the host Python for maximum package compat."""
+    vi = sys.version_info
+    return f"python:{vi.major}.{vi.minor}-slim"
+
+
+def run(
+    args: list[str],
+    *,
+    cwd: Path,
+    env: Optional[dict[str, str]] = None,
+    timeout: int = 120,
+    memory: str = "256m",
+    cpus: str = "0.5",
+    pids_limit: int = 256,
+    network: str = "none",
+    extra_mounts: Optional[list[tuple[str, str]]] = None,
+) -> subprocess.CompletedProcess:
+    """Run *args* inside a Docker container mounted at *cwd*.
+
+    Falls back to a direct subprocess when Docker is unavailable and mode is
+    'auto'.  Raises RuntimeError when mode is 'required' and Docker is absent.
+
+    Parameters
+    ----------
+    args:
+        Command to run inside the container (e.g. ``["python", "-m", "pytest", ...]``).
+    cwd:
+        Host directory to mount into the container (read-write so pytest can
+        write ``__pycache__`` and ``.pytest_cache``).  Mounted at the same
+        absolute path inside the container so paths in tracebacks match.
+    env:
+        Environment variables forwarded into the container.  Defaults to the
+        current process environment.
+    timeout:
+        Seconds before the container is killed with SIGKILL.
+    extra_mounts:
+        Additional ``(host_path, container_path)`` pairs to mount read-only
+        (e.g. a shared venv directory).
+    """
+    mode = _mode()
+    if mode == "none":
+        return _direct(args, cwd=cwd, env=env, timeout=timeout)
+
+    if not is_available():
+        if mode == "required":
+            raise RuntimeError(
+                "ANTCREW_SANDBOX=required but Docker is not available. "
+                "Install Docker or set ANTCREW_SANDBOX=auto to allow unsandboxed fallback."
+            )
+        log.warning(
+            "sandbox: Docker unavailable — running %s unsandboxed (set "
+            "ANTCREW_SANDBOX=required to block this)",
+            args[0] if args else "command",
+        )
+        return _direct(args, cwd=cwd, env=env, timeout=timeout)
+
+    return _docker(
+        args, cwd=cwd, env=env, timeout=timeout,
+        memory=memory, cpus=cpus, pids_limit=pids_limit,
+        network=network, extra_mounts=extra_mounts or [],
+    )
+
+
+def _docker(
+    args: list[str],
+    *,
+    cwd: Path,
+    env: Optional[dict[str, str]],
+    timeout: int,
+    memory: str,
+    cpus: str,
+    pids_limit: int,
+    network: str,
+    extra_mounts: list[tuple[str, str]],
+) -> subprocess.CompletedProcess:
+    cwd_str = str(cwd.resolve())
+    # Windows paths cannot be mounted into Linux containers without WSL translation.
+    # Fall back to direct execution to avoid silent failures.
+    if sys.platform == "win32":
+        log.debug("sandbox: Windows host — falling back to direct subprocess")
+        return _direct(args, cwd=cwd, env=env, timeout=timeout)
+    image = _docker_image()
+
+    docker_cmd: list[str] = [
+        "docker", "run", "--rm",
+        f"--memory={memory}",
+        f"--memory-swap={memory}",  # disable swap
+        f"--cpus={cpus}",
+        f"--pids-limit={pids_limit}",
+        f"--network={network}",
+        "--security-opt=no-new-privileges",
+        f"--stop-timeout={min(timeout, 60)}",
+        # project dir — rw so pytest can write __pycache__ / .pytest_cache
+        "-v", f"{cwd_str}:{cwd_str}",
+        "-w", cwd_str,
+    ]
+
+    for host_p, cont_p in extra_mounts:
+        docker_cmd += ["-v", f"{host_p}:{cont_p}:ro"]
+
+    # Forward only the env vars the command actually needs
+    for key, val in (env or os.environ).items():
+        if key in ("PYTHONPATH", "PYTHONDONTWRITEBYTECODE", "HOME", "TMPDIR", "TMP", "TEMP"):
+            docker_cmd += ["-e", f"{key}={val}"]
+
+    docker_cmd += [image] + args
+
+    log.debug("sandbox: %s", " ".join(docker_cmd[:10]) + " ...")
+    try:
+        return subprocess.run(
+            docker_cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 10,  # outer timeout > inner stop-timeout
+        )
+    except subprocess.TimeoutExpired:
+        # Build a fake result matching what the caller expects
+        return subprocess.CompletedProcess(
+            args=docker_cmd,
+            returncode=124,
+            stdout="",
+            stderr=f"[sandbox] Docker container killed after {timeout}s timeout",
+        )
+
+
+def _direct(
+    args: list[str],
+    *,
+    cwd: Path,
+    env: Optional[dict[str, str]],
+    timeout: int,
+) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        cwd=str(cwd),
+        env=env or os.environ,
+        timeout=timeout,
+    )

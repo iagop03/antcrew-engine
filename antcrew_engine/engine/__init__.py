@@ -52,6 +52,7 @@ from .state import ProjectState
 from .store import ArtifactStore, MemoryStore, FilesystemStore, MultiRepoStore
 from .validator import Validator, ValidatorResult
 from .bus_bridge import EventBusBridge
+from . import sandbox
 from .hitl import (
     HitlReviewRequest, HitlDecision,
     HitlRequestedPayload, HitlResolvedPayload,
@@ -83,6 +84,8 @@ __all__ = [
     "CapabilitySelector", "CheapestFirst", "FirstMatch", "MostProductive", "PrioritySelector",
     # platform bridge
     "EventBusBridge",
+    # sandbox
+    "sandbox",
     # hitl contract
     "HitlReviewRequest", "HitlDecision",
     "HitlRequestedPayload", "HitlResolvedPayload",

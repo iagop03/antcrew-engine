@@ -108,7 +108,7 @@ class TestCodeReviewerUnit:
 
         class SpyLLM(SimulatedLLM):
             def system(self, prompt, user, **kw):
-                received.append(user)
+                received.append(prompt)  # architecture is injected into system prompt
                 return super().system(prompt, user, **kw)
 
         store = MemoryStore()

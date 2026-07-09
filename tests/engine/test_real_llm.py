@@ -2,7 +2,7 @@
 
 Uses SimulatedLLM throughout so every test always runs in CI.
 Focuses on behaviors that unit tests don't cover:
-  - FilesystemStore survives across Operator runs
+  - FilesystemStore survives across EngineLoop runs
   - CapabilitySelector strategies alter dispatch order
   - EventLog captures the full sequence and ordering
   - Full 8-capability chain reaches all conditions
@@ -14,7 +14,7 @@ import pytest
 from antcrew_engine.engine import (
     ArtifactId, ArtifactKind,
     CapabilityRegistry, Condition, ConditionId, Constraints,
-    DesiredProjectState, EventLog, FilesystemStore, Goal, MemoryStore, Operator,
+    DesiredProjectState, EventLog, FilesystemStore, Goal, MemoryStore, EngineLoop,
     CheapestFirst, FirstMatch, MostProductive, PrioritySelector,
 )
 from antcrew_engine.capabilities import (
@@ -75,7 +75,7 @@ def _plan_goal():
 
 class TestFilesystemIntegration:
     def test_artifacts_persist_across_operator_instances(self, tmp_path, llm):
-        """A second Operator can continue from where the first left off."""
+        """A second EngineLoop can continue from where the first left off."""
         store = FilesystemStore(tmp_path)
         log   = EventLog()
         goal  = _plan_goal()
@@ -87,13 +87,13 @@ class TestFilesystemIntegration:
                 Condition(ConditionId("requirements_exists"), "requirements"),
             ])),
         )
-        Operator(_registry(llm), _plan_validators(), log, max_iterations=10).run(store, partial_goal)
+        EngineLoop(_registry(llm), _plan_validators(), log, max_iterations=10).run(store, partial_goal)
         assert store.has(ArtifactId("requirements"))
 
-        # Second run: fresh Operator, same FilesystemStore path — reads prior artifacts
+        # Second run: fresh EngineLoop, same FilesystemStore path — reads prior artifacts
         store2 = FilesystemStore(tmp_path)
         log2   = EventLog()
-        Operator(_registry(llm), _plan_validators(), log2, max_iterations=10).run(store2, goal)
+        EngineLoop(_registry(llm), _plan_validators(), log2, max_iterations=10).run(store2, goal)
 
         assert store2.has(ArtifactId("architecture"))
         assert store2.has(ArtifactId("task_graph"))
@@ -120,7 +120,7 @@ class TestFilesystemIntegration:
             *_plan_validators(),
             AllTasksCompletedValidator(),
         ]
-        Operator(_registry(llm), validators, EventLog(), max_iterations=30).run(store, full_goal)
+        EngineLoop(_registry(llm), validators, EventLog(), max_iterations=30).run(store, full_goal)
 
         sources = store.list(ArtifactKind.SOURCE)
         assert len(sources) >= 1
@@ -142,7 +142,7 @@ class TestCapabilitySelectors:
         registry.register(TaskPlanner(llm=llm))
         log  = EventLog()
         goal = _plan_goal()
-        Operator(registry, _plan_validators(), log,
+        EngineLoop(registry, _plan_validators(), log,
                  max_iterations=15, selector=selector).run(MemoryStore(), goal)
         return [e.capability_name for e in log.events("capability_dispatched")]
 
@@ -177,7 +177,7 @@ class TestCapabilitySelectors:
         goal = _plan_goal()
         registry = CapabilityRegistry()
         registry.register(SpecExtractor(llm=llm))
-        Operator(
+        EngineLoop(
             registry,
             [*_plan_validators()[:1]],  # only requirements validator
             log,
@@ -209,7 +209,7 @@ class TestEventOrdering:
         )
         registry = CapabilityRegistry()
         registry.register(SpecExtractor(llm=llm))
-        Operator(registry, _plan_validators()[:1], log, max_iterations=5).run(MemoryStore(), goal)
+        EngineLoop(registry, _plan_validators()[:1], log, max_iterations=5).run(MemoryStore(), goal)
 
         all_events = log.events()
         assert all_events[0].kind == "engine_started"
@@ -224,7 +224,7 @@ class TestEventOrdering:
         )
         registry = CapabilityRegistry()
         registry.register(SpecExtractor(llm=llm))
-        Operator(registry, _plan_validators()[:1], log, max_iterations=5).run(MemoryStore(), goal)
+        EngineLoop(registry, _plan_validators()[:1], log, max_iterations=5).run(MemoryStore(), goal)
 
         all_events = log.events()
         assert all_events[-1].kind == "engine_finished"
@@ -232,7 +232,7 @@ class TestEventOrdering:
     def test_dispatch_precedes_completed(self, llm):
         log  = EventLog()
         goal = _plan_goal()
-        Operator(_registry(llm), _plan_validators(), log, max_iterations=15).run(MemoryStore(), goal)
+        EngineLoop(_registry(llm), _plan_validators(), log, max_iterations=15).run(MemoryStore(), goal)
 
         kinds = [e.kind for e in log.events()]
         for name in ("spec_extractor", "architect", "task_planner"):
@@ -252,7 +252,7 @@ class TestEventOrdering:
         )
         registry = CapabilityRegistry()
         registry.register(SpecExtractor(llm=llm))
-        Operator(registry, _plan_validators()[:1], log, max_iterations=5).run(MemoryStore(), goal)
+        EngineLoop(registry, _plan_validators()[:1], log, max_iterations=5).run(MemoryStore(), goal)
 
         events    = log.events()
         kinds     = [e.kind for e in events]
@@ -267,7 +267,7 @@ class TestEventOrdering:
 
 class TestTeamExecutorIntegration:
     def test_team_executor_runs_in_operator_loop(self, llm):
-        """TeamExecutor wrapping a simple callable works inside the Operator loop."""
+        """TeamExecutor wrapping a simple callable works inside the EngineLoop loop."""
         from antcrew_engine.capabilities.team_executor import TeamExecutor
         from antcrew_engine.engine import CapabilityDescriptor
 
@@ -294,7 +294,7 @@ class TestTeamExecutorIntegration:
                 Condition(ConditionId("requirements_exists"), "requirements"),
             ])),
         )
-        state = Operator(registry, validators, EventLog(), max_iterations=5).run(MemoryStore(), goal)
+        state = EngineLoop(registry, validators, EventLog(), max_iterations=5).run(MemoryStore(), goal)
         assert ConditionId("requirements_exists") in state.satisfied
 
     def test_team_executor_stores_output_artifact(self):

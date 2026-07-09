@@ -6,7 +6,7 @@ Mapping:
     capability_progress   -> agent.token  {agent_name, chunk}
 
 pipeline.start and pipeline.end are intentionally NOT mapped here — the caller
-emits those before/after Operator.run() so they carry the real run_id and cost.
+emits those before/after EngineLoop.run() so they carry the real run_id and cost.
 
 Dependency injection
 --------------------
@@ -109,6 +109,32 @@ class EventBusBridge:
                     "chunk":      event.chunk,
                     "run_id":     rid,
                     "thread_id":  tid,
+                },
+                run_id=rid,
+                thread_id=tid,
+            )
+
+        elif kind == "hitl_requested":
+            on_event(
+                "hitl.review_required",
+                {
+                    "review_id":            event.review_id,
+                    "run_id":               rid,
+                    "thread_id":            tid,
+                    "reviewed_capability":  event.reviewed_capability,
+                },
+                run_id=rid,
+                thread_id=tid,
+            )
+
+        elif kind == "hitl_resolved":
+            on_event(
+                "hitl.resolved",
+                {
+                    "review_id":  event.review_id,
+                    "run_id":     rid,
+                    "thread_id":  tid,
+                    "verdict":    event.verdict,
                 },
                 run_id=rid,
                 thread_id=tid,

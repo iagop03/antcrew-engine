@@ -2,7 +2,7 @@
 
 Validators inspect the ArtifactStore and derive whether a Condition
 is satisfied.  They are the only components that translate raw artifacts
-into the ProjectState the Operator reasons over.
+into the ProjectState the EngineLoop reasons over.
 
 Invariants (never break these):
   - A Validator NEVER modifies the ArtifactStore.
@@ -15,7 +15,7 @@ Incremental validation:
   - global_scope=True   → always re-run (expensive; use sparingly).
 
 ValidatorResult carries observations and metrics in addition to the
-boolean outcome — the Operator logs these and may use them for decisions.
+boolean outcome — the EngineLoop logs these and may use them for decisions.
 """
 from __future__ import annotations
 

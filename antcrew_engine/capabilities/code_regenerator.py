@@ -9,7 +9,7 @@ It does NOT generate code itself. Instead it:
 CodeGenerator then picks up the reset task(s) with better context and
 regenerates from scratch. BugFixer recovers its retry budget automatically
 because CodeGenerator's run satisfies implementation_exists (newly non-empty
-→ Operator clears retry_counts for all capabilities).
+→ EngineLoop clears retry_counts for all capabilities).
 """
 from __future__ import annotations
 

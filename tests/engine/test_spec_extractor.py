@@ -6,7 +6,7 @@ import pytest
 from antcrew_engine.engine import (
     ArtifactId, ArtifactKind, CapabilityRegistry,
     Condition, ConditionId, Constraints, DesiredProjectState,
-    EventLog, Goal, MemoryStore, Operator,
+    EventLog, Goal, MemoryStore, EngineLoop,
 )
 from antcrew_engine.capabilities.spec_extractor import SpecExtractor
 from antcrew_engine.capabilities.validators import ArtifactExistsValidator
@@ -109,7 +109,7 @@ class TestSpecExtractorUnit:
 
 
 # ---------------------------------------------------------------------------
-# Integration: SpecExtractor inside the Operator loop
+# Integration: SpecExtractor inside the EngineLoop loop
 # ---------------------------------------------------------------------------
 
 class TestSpecExtractorInLoop:
@@ -122,7 +122,7 @@ class TestSpecExtractorInLoop:
             ArtifactExistsValidator(ArtifactId("requirements"), ConditionId("requirements_exists"))
         ]
         log      = EventLog()
-        operator = Operator(registry, validators, log)
+        operator = EngineLoop(registry, validators, log)
 
         final_state = operator.run(store, goal)
 
@@ -138,7 +138,7 @@ class TestSpecExtractorInLoop:
             ArtifactExistsValidator(ArtifactId("requirements"), ConditionId("requirements_exists"))
         ]
         log      = EventLog()
-        Operator(registry, validators, log).run(store, goal)
+        EngineLoop(registry, validators, log).run(store, goal)
 
         kinds = [e.kind for e in log.events()]
         assert "engine_started"         in kinds
@@ -156,7 +156,7 @@ class TestSpecExtractorInLoop:
             ArtifactExistsValidator(ArtifactId("requirements"), ConditionId("requirements_exists"))
         ]
         log      = EventLog()
-        Operator(registry, validators, log).run(store, goal)
+        EngineLoop(registry, validators, log).run(store, goal)
 
         dispatched = log.events("capability_dispatched")
         assert len(dispatched) == 1

@@ -7,6 +7,7 @@ Usage:
 """
 from __future__ import annotations
 
+import difflib
 import json
 from pathlib import Path
 from typing import Optional
@@ -20,7 +21,7 @@ from antcrew_engine.engine import (
     Artifact, ArtifactId, ArtifactKind,
     CapabilityRegistry, Condition, ConditionId, Constraints,
     DesiredProjectState, EventLog, FilesystemStore, Goal, MemoryStore,
-    MultiRepoStore, Operator,
+    MultiRepoStore, EngineLoop,
 )
 from antcrew_engine.capabilities import (
     Architect, BugFixer, CodeGenerator, CodeRegenerator, CodeReviewer,
@@ -358,7 +359,16 @@ def run(
     store = _build_store(output, list(repo), list(route))
     log   = EventLog()
 
+    # Snapshot from_dir content before the engine modifies anything (for diff-preview).
+    _from_dir_snapshot: dict[str, str] = {}
     if from_dir is not None:
+        for _src in sorted(from_dir.rglob("*")):
+            if _src.is_file():
+                try:
+                    _rel = str(_src.relative_to(from_dir)).replace("\\", "/")
+                    _from_dir_snapshot[_rel] = _src.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    pass
         n = _load_existing_codebase(store, from_dir, goal_description)
         console.print(f"[dim]Loaded {n} file(s) from[/] [bold]{from_dir}[/]")
     registry   = _build_registry(
@@ -370,7 +380,7 @@ def run(
         parallel_workers=parallel_workers,
     )
     validators = _build_validators()
-    operator   = Operator(
+    operator   = EngineLoop(
         registry, validators, log,
         max_iterations=max_iter,
         retry_limits={"test_runner": 1, "bug_fixer": fix_attempts, "code_reviewer": 2},
@@ -430,6 +440,8 @@ def run(
         for repo_name, sub_store in store.stores().items():
             console.print(f"  [dim]Repo '{repo_name}':[/] {sub_store.root}")
 
+    if _from_dir_snapshot and output is not None and output.is_dir():
+        _show_from_dir_diffs(_from_dir_snapshot, output, console)
     _print_summary(store, output, written)
     total_r = _run_cache["read"]
     total_w = _run_cache["write"]
@@ -441,6 +453,70 @@ def run(
             f"[cyan]{total_w:,}[/] written{hit_pct}[/]"
         )
     console.print(f"\n[green bold]Done.[/] {len(final_state.satisfied)} condition(s) satisfied.")
+
+
+def _show_from_dir_diffs(
+    snapshot: "dict[str, str]",
+    output_dir: "Path",
+    console: "Console",
+) -> None:
+    """Show unified diffs between the original from_dir files and the engine output."""
+    changed: list[tuple[str, list[str]]] = []
+    added: list[str] = []
+
+    for src_file in sorted(output_dir.rglob("*")):
+        if not src_file.is_file():
+            continue
+        try:
+            rel = str(src_file.relative_to(output_dir)).replace("\\", "/")
+        except ValueError:
+            continue
+        try:
+            new_content = src_file.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+
+        if rel in snapshot:
+            old_content = snapshot[rel]
+            if old_content == new_content:
+                continue
+            diff = list(difflib.unified_diff(
+                old_content.splitlines(keepends=True),
+                new_content.splitlines(keepends=True),
+                fromfile=f"original/{rel}",
+                tofile=f"output/{rel}",
+                n=3,
+            ))
+            if diff:
+                changed.append((rel, diff))
+        else:
+            added.append(rel)
+
+    if not changed and not added:
+        return
+
+    console.print()
+    console.rule("[dim]Changes from --from-dir[/]", style="dim")
+
+    if added:
+        console.print(f"[green]New files ({len(added)}):[/] " + ", ".join(added[:10])
+                      + ("..." if len(added) > 10 else ""))
+
+    for rel, diff in changed:
+        console.print(f"\n[bold]{rel}[/]")
+        for line in diff:
+            line = line.rstrip("\n")
+            if line.startswith("+") and not line.startswith("+++"):
+                console.print(f"[green]{line}[/]")
+            elif line.startswith("-") and not line.startswith("---"):
+                console.print(f"[red]{line}[/]")
+            elif line.startswith("@@"):
+                console.print(f"[cyan]{line}[/]")
+            else:
+                console.print(f"[dim]{line}[/]")
+
+    console.rule(style="dim")
+
 
 
 @app.command()

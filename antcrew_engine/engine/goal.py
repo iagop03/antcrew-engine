@@ -3,7 +3,7 @@
 A Goal separates two things:
 
   DesiredProjectState — the conditions the project must satisfy.
-    Each Condition has an identity (ConditionId) so the Operator and
+    Each Condition has an identity (ConditionId) so the EngineLoop and
     EventLog can reason about them by name, not by value.
 
   Constraints — how to get there.

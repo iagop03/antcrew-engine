@@ -2,7 +2,13 @@
 
 Capability-driven autonomous project execution engine — **Layer 2** of the [antcrew](https://github.com/iagop03/antcrew) stack.
 
-The engine iterates an `Operator` loop over a natural-language goal, dispatching modular `Capability` executors until every condition in the desired project state is satisfied. No LangGraph dependency — designed to be embedded directly or wrapped by antcrew (Layer 1).
+The engine iterates an `EngineLoop` over a natural-language goal, dispatching modular `Capability` executors until every condition in the desired project state is satisfied. No LangGraph dependency — designed to be embedded directly or wrapped by antcrew (Layer 1).
+
+## When to use antcrew-engine vs antcrew
+
+**Use antcrew-engine (Layer 2)** when you want a fully autonomous loop that builds or modifies code without a fixed pipeline of named roles. The `EngineLoop` is goal-directed — it reads the current artifact state, picks the cheapest capability that closes the gap toward the desired conditions, and repeats. The set of steps is not known in advance; it emerges from what's already been done. This is the right model for brownfield work (`--from-dir`), resume runs, and any task where the pipeline structure shouldn't be hardcoded.
+
+**Use antcrew (Layer 1)** when you want a structured pipeline of named agents (Business Analyst → PM → Backend Dev → QA → Reviewer) orchestrated with LangGraph, with explicit human-in-the-loop between roles, project sessions across multiple runs, and semantic memory. Layer 1 depends on Layer 2 — all its capabilities are re-exported from `antcrew_engine`.
 
 ## Architecture
 
@@ -10,7 +16,7 @@ The engine iterates an `Operator` loop over a natural-language goal, dispatching
 Goal + Constraints
        │
        ▼
-   Operator ─── CapabilityRegistry
+  EngineLoop ─── CapabilityRegistry
        │              │
        │    ┌─────────┴──────────────────────────────┐
        │    │  Architect   TaskPlanner   CodeGenerator │
@@ -22,7 +28,7 @@ Goal + Constraints
   ArtifactStore  (MemoryStore | FilesystemStore | MultiRepoStore)
 ```
 
-Each capability reads from and writes to the store. The Operator picks the cheapest applicable capability until the `DesiredProjectState` is reached.
+Each capability reads from and writes to the store. The `EngineLoop` picks the cheapest applicable capability until the `DesiredProjectState` is reached.
 
 ## Install
 

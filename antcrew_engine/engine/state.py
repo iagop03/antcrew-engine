@@ -1,9 +1,9 @@
 """ProjectState: an immutable snapshot of what the project is right now.
 
 ProjectState is derived by Validators from the ArtifactStore.
-It is never modified — each Operator iteration produces a new snapshot.
+It is never modified — each EngineLoop iteration produces a new snapshot.
 
-The Operator reasons over ProjectState.  It never reads the Store directly.
+The EngineLoop reasons over ProjectState.  It never reads the Store directly.
 """
 from __future__ import annotations
 

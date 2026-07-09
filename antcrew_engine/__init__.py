@@ -1,12 +1,12 @@
 """antcrew_engine — capability-driven project execution engine (Layer 2).
 
-The engine autonomously builds software by iterating an Operator loop over a
+The engine autonomously builds software by iterating an EngineLoop loop over a
 goal until the project reaches a desired state.  It has no dependency on
 LangGraph or the supervised multi-agent teams in antcrew (Layer 1).
 
 Quick start::
 
-    from antcrew_engine.engine import Operator, MemoryStore, Goal, DesiredProjectState
+    from antcrew_engine.engine import EngineLoop, MemoryStore, Goal, DesiredProjectState
     from antcrew_engine.engine import Condition, ConditionId, Constraints
     from antcrew_engine.capabilities import Architect, TaskPlanner, CodeGenerator
     from antcrew_engine.config import build_llm
@@ -14,7 +14,7 @@ Quick start::
     llm   = build_llm("claude")
     store = MemoryStore()
     goal  = Goal("build a REST API", DesiredProjectState(...), Constraints())
-    op    = Operator(registry, validators, log)
+    op    = EngineLoop(registry, validators, log)
     state = op.run(store, goal)
 
 CLI entry point (installed as ``antcrew-engine``)::
@@ -30,9 +30,11 @@ from antcrew_engine.engine import (
     ValidatorResult, Validator,
     CapabilityRegistry,
     EventLog,
-    Operator, OperatorError,
+    EngineLoop, EngineLoopError,
     CapabilitySelector, CheapestFirst, FirstMatch, MostProductive, PrioritySelector,
     EventBusBridge,
+    HitlReviewRequest, HitlDecision,
+    HitlRequestedPayload, HitlResolvedPayload,
 )
 from antcrew_engine.capabilities import (
     Architect, TaskPlanner, CodeGenerator, CodeRegenerator,
@@ -53,9 +55,11 @@ __all__ = [
     "ValidatorResult", "Validator",
     "CapabilityRegistry",
     "EventLog",
-    "Operator", "OperatorError",
+    "EngineLoop", "EngineLoopError",
     "CapabilitySelector", "CheapestFirst", "FirstMatch", "MostProductive", "PrioritySelector",
     "EventBusBridge",
+    "HitlReviewRequest", "HitlDecision",
+    "HitlRequestedPayload", "HitlResolvedPayload",
     # capabilities
     "Architect", "TaskPlanner", "CodeGenerator", "CodeRegenerator",
     "BugFixer", "CodeReviewer", "DependencyInstaller", "DocGenerator",

@@ -7,7 +7,7 @@ import pytest
 from antcrew_engine.engine import (
     Artifact, ArtifactId, ArtifactKind,
     CapabilityRegistry, Condition, ConditionId, Constraints,
-    DesiredProjectState, EventLog, Goal, MemoryStore, Operator,
+    DesiredProjectState, EventLog, Goal, MemoryStore, EngineLoop,
 )
 from antcrew_engine.capabilities.architect import Architect
 from antcrew_engine.capabilities.code_generator import CodeGenerator
@@ -218,7 +218,7 @@ def _full_registry(llm):
 
 class TestFullPipeline:
     def test_all_artifacts_created(self, llm):
-        """Operator drives the full pipeline to completion with SimulatedLLM."""
+        """EngineLoop drives the full pipeline to completion with SimulatedLLM."""
         goal = Goal(
             description="Build a minimal todo API in FastAPI",
             desired_state=DesiredProjectState(frozenset([
@@ -230,7 +230,7 @@ class TestFullPipeline:
         )
         store    = MemoryStore()
         log      = EventLog()
-        operator = Operator(_full_registry(llm), _all_validators(), log, max_iterations=30)
+        operator = EngineLoop(_full_registry(llm), _all_validators(), log, max_iterations=30)
 
         final_state = operator.run(store, goal)
 
@@ -251,7 +251,7 @@ class TestFullPipeline:
         )
         store = MemoryStore()
         log   = EventLog()
-        Operator(_full_registry(llm), _all_validators(), log, max_iterations=20).run(store, goal)
+        EngineLoop(_full_registry(llm), _all_validators(), log, max_iterations=20).run(store, goal)
 
         dispatched = [e.capability_name for e in log.events("capability_dispatched")]
         assert "spec_extractor" in dispatched
@@ -266,7 +266,7 @@ class TestFullPipeline:
             ])),
         )
         log = EventLog()
-        Operator(_full_registry(llm), _all_validators(), log, max_iterations=10).run(MemoryStore(), goal)
+        EngineLoop(_full_registry(llm), _all_validators(), log, max_iterations=10).run(MemoryStore(), goal)
 
         finished = log.events("engine_finished")
         assert len(finished) == 1

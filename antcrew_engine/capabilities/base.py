@@ -5,7 +5,7 @@ The base class handles:
   - Execution timing (written into CapabilityResult.execution_time)
   - Error capture (exceptions → CapabilityResult.errors, never re-raised)
   - Python syntax gate: any SOURCE artifact with a SyntaxError is rejected
-    (EMPTY_DELTA + errors) so the Operator retries within limits instead of
+    (EMPTY_DELTA + errors) so the EngineLoop retries within limits instead of
     committing broken code to the store.
 
 The public Executor Protocol never leaks model names or provider details.
@@ -50,13 +50,13 @@ class BaseExecutor:
     Subclasses that don't need an LLM (e.g. TestRunner) may leave
     llm=None and must not call _call().
 
-    The Operator injects _event_log before each execute() call so that
+    The EngineLoop injects _event_log before each execute() call so that
     streaming tokens are forwarded as CapabilityProgress events.
     """
 
     def __init__(self, llm: "Optional[BaseLLM]" = None) -> None:
         self._llm = llm
-        self._event_log = None  # injected by Operator; enables streaming
+        self._event_log = None  # injected by EngineLoop; enables streaming
 
     def _call(self, system: str, user: str) -> str:
         """Call the injected LLM with a system + user prompt pair.

@@ -34,7 +34,7 @@ class BugFixer(BaseExecutor):
     """Reads failing test output and generates source-code fixes.
 
     Does not re-run tests itself — relies on TestRunner to verify the fix in
-    the next Operator iteration.  The 'resets_retries' tag tells the Operator
+    the next EngineLoop iteration.  The 'resets_retries' tag tells the EngineLoop
     to give TestRunner a fresh retry budget after BugFixer writes new code.
     """
 

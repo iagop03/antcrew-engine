@@ -62,7 +62,7 @@ class ConditionInvalidated(Event):
 
 
 @dataclass(frozen=True)
-class OperatorDecision(Event):
+class EngineDecision(Event):
     chosen:     str            = ""
     candidates: tuple[str, ...] = ()
     reason:     str            = ""

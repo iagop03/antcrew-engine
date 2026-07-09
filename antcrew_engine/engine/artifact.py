@@ -5,7 +5,7 @@ a task graph, a test report.  It is identified by an ArtifactId (not by its
 filesystem path), so storage is a detail of the ArtifactStore implementation.
 
 ArtifactDelta describes what changed after a Capability executed.  The Store
-applies the delta; the Operator and Validators never modify artifacts directly.
+applies the delta; the EngineLoop and Validators never modify artifacts directly.
 """
 from __future__ import annotations
 

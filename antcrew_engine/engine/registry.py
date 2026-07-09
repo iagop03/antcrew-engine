@@ -4,8 +4,8 @@ The Registry answers one question: given a gap (unsatisfied conditions),
 which Executors are candidates?
 
 It deliberately does NOT select — it returns all candidates.
-The Operator selects.  This decouples capability discovery from
-execution policy, so the Operator's decision logic can change
+The EngineLoop selects.  This decouples capability discovery from
+execution policy, so the EngineLoop's decision logic can change
 (cost-based, LLM-based, rule-based) without touching the registry.
 """
 from __future__ import annotations

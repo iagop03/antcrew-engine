@@ -5,7 +5,7 @@ A Capability has two parts, kept deliberately separate:
   CapabilityDescriptor — the contract.
     Declares what conditions must hold before execution (needs),
     what conditions will hold after (produces), and what artifacts
-    it reads/writes.  The Operator and Registry reason over descriptors.
+    it reads/writes.  The EngineLoop and Registry reason over descriptors.
     No implementation detail leaks here.
 
   Executor — the implementation.
@@ -15,7 +15,7 @@ A Capability has two parts, kept deliberately separate:
     the same descriptor.
 
 CapabilityResult wraps the ArtifactDelta (what changed) together
-with execution metadata.  The Operator applies the delta to the Store;
+with execution metadata.  The EngineLoop applies the delta to the Store;
 it never interprets the delta's contents.
 """
 from __future__ import annotations

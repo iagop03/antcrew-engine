@@ -1,6 +1,6 @@
-"""Operator: the engine's decision loop.
+"""EngineLoop: the engine's decision loop.
 
-The Operator never touches the ArtifactStore directly.
+The EngineLoop never touches the ArtifactStore directly.
   - inspect()  reads ProjectState through Validators (pure observation).
   - decide()   selects an Executor from candidates (pure reasoning).
   - run()      orchestrates the loop and dispatches to Executors.
@@ -8,7 +8,7 @@ The Operator never touches the ArtifactStore directly.
 Decision policy in decide():
   1. Deterministic rules (cost-ordered by default).
   2. LLM fallback when rules produce no clear winner.
-     Subclass Operator and override decide() to inject LLM reasoning —
+     Subclass EngineLoop and override decide() to inject LLM reasoning —
      the interface never exposes the model name or provider.
 
 Escape conditions:
@@ -31,7 +31,7 @@ from .selector import CapabilitySelector, CheapestFirst
 from .events import (
     EventLog, EngineStarted, EngineFinished, EngineError,
     StateObserved, CapabilityDispatched, CapabilityCompleted,
-    ConditionSatisfied, OperatorDecision,
+    ConditionSatisfied, EngineDecision,
 )
 from .goal import ConditionId, Goal
 from .registry import CapabilityRegistry
@@ -40,7 +40,7 @@ from .store import ArtifactStore
 from .validator import Validator
 
 
-class OperatorError(Exception):
+class EngineLoopError(Exception):
     class Kind(Enum):
         STUCK           = auto()
         TIMEOUT         = auto()
@@ -49,7 +49,7 @@ class OperatorError(Exception):
         CANCELLED       = auto()
         BUDGET_EXCEEDED = auto()
 
-    def __init__(self, kind: "OperatorError.Kind", message: str = "") -> None:
+    def __init__(self, kind: "EngineLoopError.Kind", message: str = "") -> None:
         self.kind = kind
         super().__init__(message or kind.name)
 
@@ -58,7 +58,7 @@ _NO_PROGRESS_LIMIT = 3
 _UNLIMITED = 9999
 
 
-class Operator:
+class EngineLoop:
     def __init__(
         self,
         registry:       CapabilityRegistry,
@@ -158,7 +158,7 @@ class Operator:
         ]
         chosen = self._selector.select(eligible, state, goal)
         if chosen is not None:
-            self._log.emit(OperatorDecision(
+            self._log.emit(EngineDecision(
                 chosen     = chosen.descriptor.name,
                 candidates = tuple(ex.descriptor.name for ex in eligible),
                 reason     = self._selector.name,
@@ -183,8 +183,8 @@ class Operator:
         for iteration in range(self._max_iterations):
             # Check external cancellation signal before each iteration
             if self._stop_event is not None and self._stop_event.is_set():
-                err = OperatorError(
-                    OperatorError.Kind.CANCELLED,
+                err = EngineLoopError(
+                    EngineLoopError.Kind.CANCELLED,
                     "run cancelled by external request",
                 )
                 self._log.emit(EngineError(error_kind="CANCELLED", message=str(err)))
@@ -224,8 +224,8 @@ class Operator:
 
             # -- escape: invalid state
             if state.is_invalid:
-                err = OperatorError(
-                    OperatorError.Kind.INVALID_STATE,
+                err = EngineLoopError(
+                    EngineLoopError.Kind.INVALID_STATE,
                     state.invalid_reason or "invalid project state detected",
                 )
                 self._log.emit(EngineError(
@@ -251,8 +251,8 @@ class Operator:
 
             # -- escape: stuck (includes retry/total-limit exhaustion)
             if executor is None:
-                err = OperatorError(
-                    OperatorError.Kind.STUCK,
+                err = EngineLoopError(
+                    EngineLoopError.Kind.STUCK,
                     _build_stuck_reason(
                         gap, candidates, state,
                         self._registry, self._retry_counts, self._retry_limits,
@@ -273,8 +273,8 @@ class Operator:
             # Pre-dispatch gate — caller can inspect the executor and store,
             # then return False to abort the run cleanly (e.g. user prompt).
             if self._pre_dispatch is not None and not self._pre_dispatch(executor, store):
-                err = OperatorError(
-                    OperatorError.Kind.CANCELLED,
+                err = EngineLoopError(
+                    EngineLoopError.Kind.CANCELLED,
                     f"run cancelled before dispatching {name}",
                 )
                 self._log.emit(EngineError(error_kind="CANCELLED", message=str(err)))
@@ -300,8 +300,8 @@ class Operator:
                 self._max_cost_usd is not None
                 and self._total_cost_usd >= self._max_cost_usd
             ):
-                err = OperatorError(
-                    OperatorError.Kind.BUDGET_EXCEEDED,
+                err = EngineLoopError(
+                    EngineLoopError.Kind.BUDGET_EXCEEDED,
                     f"cost limit ${self._max_cost_usd:.4f} exceeded "
                     f"(spent ${self._total_cost_usd:.6f})",
                 )
@@ -327,8 +327,8 @@ class Operator:
             if result.delta.is_empty():
                 no_progress_run += 1
                 if no_progress_run >= _NO_PROGRESS_LIMIT:
-                    err = OperatorError(
-                        OperatorError.Kind.NO_PROGRESS,
+                    err = EngineLoopError(
+                        EngineLoopError.Kind.NO_PROGRESS,
                         f"no delta produced for {_NO_PROGRESS_LIMIT} consecutive iterations",
                     )
                     self._log.emit(EngineError(error_kind="NO_PROGRESS", message=str(err)))
@@ -336,8 +336,8 @@ class Operator:
             else:
                 no_progress_run = 0
 
-        err = OperatorError(
-            OperatorError.Kind.TIMEOUT,
+        err = EngineLoopError(
+            EngineLoopError.Kind.TIMEOUT,
             f"exceeded {self._max_iterations} iterations",
         )
         self._log.emit(EngineError(error_kind="TIMEOUT", message=str(err)))

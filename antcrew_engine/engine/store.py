@@ -6,7 +6,7 @@ FilesystemStore (persists to disk across runs).
 
 Capabilities read and write through the store.
 Validators read through the store.
-The Operator never touches the store directly.
+The EngineLoop never touches the store directly.
 """
 from __future__ import annotations
 

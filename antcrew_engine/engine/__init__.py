@@ -15,10 +15,11 @@ Types:
     ValidatorResult, Validator
     CapabilityRegistry
     Event, EventLog  (+ all Event subclasses)
-    Operator, OperatorError
+    EngineLoop, EngineLoopError
+    HitlReviewRequest, HitlDecision  (HITL contract)
 
 Entry point:
-    Operator.run(store, goal) → ProjectState
+    EngineLoop.run(store, goal) → ProjectState
 """
 from .artifact import (
     Artifact,
@@ -38,11 +39,11 @@ from .events import (
     EngineStarted,
     Event,
     EventLog,
-    OperatorDecision,
+    EngineDecision,
     StateObserved,
 )
 from .goal import Condition, ConditionId, Constraints, DesiredProjectState, Goal
-from .operator import Operator, OperatorError
+from .operator import EngineLoop, EngineLoopError
 from .registry import CapabilityRegistry
 from .selector import (
     CapabilitySelector, CheapestFirst, FirstMatch, MostProductive, PrioritySelector,
@@ -51,6 +52,10 @@ from .state import ProjectState
 from .store import ArtifactStore, MemoryStore, FilesystemStore, MultiRepoStore
 from .validator import Validator, ValidatorResult
 from .bus_bridge import EventBusBridge
+from .hitl import (
+    HitlReviewRequest, HitlDecision,
+    HitlRequestedPayload, HitlResolvedPayload,
+)
 
 __all__ = [
     # artifact
@@ -71,11 +76,14 @@ __all__ = [
     "Event", "EventLog",
     "EngineStarted", "EngineFinished", "EngineError",
     "StateObserved", "CapabilityDispatched", "CapabilityCompleted",
-    "ConditionSatisfied", "ConditionInvalidated", "OperatorDecision",
+    "ConditionSatisfied", "ConditionInvalidated", "EngineDecision",
     # operator
-    "Operator", "OperatorError",
+    "EngineLoop", "EngineLoopError",
     # selector
     "CapabilitySelector", "CheapestFirst", "FirstMatch", "MostProductive", "PrioritySelector",
     # platform bridge
     "EventBusBridge",
+    # hitl contract
+    "HitlReviewRequest", "HitlDecision",
+    "HitlRequestedPayload", "HitlResolvedPayload",
 ]

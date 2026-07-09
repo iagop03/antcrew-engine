@@ -1,6 +1,6 @@
 """CapabilitySelector: pluggable strategy for picking an Executor from candidates.
 
-The Operator calls selector.select() inside decide() — replacing the hard-coded
+The EngineLoop calls selector.select() inside decide() — replacing the hard-coded
 cheapest-first logic with a swappable policy.
 
 Built-in selectors

@@ -6,7 +6,7 @@ import pytest
 from antcrew_engine.engine import (
     Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
     CapabilityRegistry, Condition, ConditionId, Constraints,
-    DesiredProjectState, EventLog, Goal, MemoryStore, Operator,
+    DesiredProjectState, EventLog, Goal, MemoryStore, EngineLoop,
 )
 from antcrew_engine.capabilities.architect import Architect
 from antcrew_engine.capabilities.spec_extractor import SpecExtractor
@@ -131,7 +131,7 @@ class TestArchitectUnit:
 
 
 # ---------------------------------------------------------------------------
-# Integration: SpecExtractor → Architect in one Operator loop
+# Integration: SpecExtractor → Architect in one EngineLoop loop
 # ---------------------------------------------------------------------------
 
 class TestArchitectInLoop:
@@ -145,7 +145,7 @@ class TestArchitectInLoop:
             ("requirements", "requirements_exists"),
             ("architecture", "architecture_exists"),
         )
-        final_state = Operator(registry, validators, EventLog()).run(store, goal)
+        final_state = EngineLoop(registry, validators, EventLog()).run(store, goal)
 
         assert ConditionId("requirements_exists") in final_state.satisfied
         assert ConditionId("architecture_exists") in final_state.satisfied
@@ -163,7 +163,7 @@ class TestArchitectInLoop:
             ("architecture", "architecture_exists"),
         )
         log = EventLog()
-        Operator(registry, validators, log).run(store, goal)
+        EngineLoop(registry, validators, log).run(store, goal)
 
         dispatched = [e.capability_name for e in log.events("capability_dispatched")]
         assert dispatched == ["spec_extractor", "architect"]
@@ -179,7 +179,7 @@ class TestArchitectInLoop:
             ("architecture", "architecture_exists"),
         )
         log = EventLog()
-        Operator(registry, validators, log).run(store, goal)
+        EngineLoop(registry, validators, log).run(store, goal)
 
         assert len(log.events("capability_dispatched")) == 2
         assert len(store.list()) == 2

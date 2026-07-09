@@ -440,8 +440,14 @@ def run(
         for repo_name, sub_store in store.stores().items():
             console.print(f"  [dim]Repo '{repo_name}':[/] {sub_store.root}")
 
-    if _from_dir_snapshot and output is not None and output.is_dir():
-        _show_from_dir_diffs(_from_dir_snapshot, output, console)
+    if _from_dir_snapshot:
+        if output is not None and output.is_dir():
+            _show_from_dir_diffs(_from_dir_snapshot, output, console)
+        elif isinstance(store, MultiRepoStore):
+            for _repo_name, _sub in store.stores().items():
+                if _sub.root.is_dir():
+                    _show_from_dir_diffs(_from_dir_snapshot, _sub.root, console,
+                                         label=f"repo '{_repo_name}'")
     _print_summary(store, output, written)
     total_r = _run_cache["read"]
     total_w = _run_cache["write"]
@@ -459,6 +465,7 @@ def _show_from_dir_diffs(
     snapshot: "dict[str, str]",
     output_dir: "Path",
     console: "Console",
+    label: str = "output",
 ) -> None:
     """Show unified diffs between the original from_dir files and the engine output."""
     changed: list[tuple[str, list[str]]] = []
@@ -496,7 +503,7 @@ def _show_from_dir_diffs(
         return
 
     console.print()
-    console.rule("[dim]Changes from --from-dir[/]", style="dim")
+    console.rule(f"[dim]Changes from --from-dir ({label})[/]", style="dim")
 
     if added:
         console.print(f"[green]New files ({len(added)}):[/] " + ", ".join(added[:10])

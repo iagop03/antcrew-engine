@@ -287,7 +287,8 @@ def _docker_with_install(
     image = _docker_image()
     docker_cmd: list[str] = [
         "docker", "run", "--rm",
-        "--user=65534:65534",  # nobody:nogroup — prevents container-escape via kernel vuln as root
+        # No --user here: pip install as nobody (65534) cannot write to Python site-packages.
+        # Isolation comes from Docker's namespace + no-new-privileges + pids-limit.
         f"--memory={memory}",
         f"--memory-swap={memory}",
         f"--cpus={cpus}",

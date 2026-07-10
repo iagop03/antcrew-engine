@@ -2,6 +2,13 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.3] — 2026-07-10
+
+### Fixed
+- `__version__` dynamic read via `importlib.metadata` now actually shipped in the published wheel — 0.3.2 on PyPI still contained the hardcoded string `"0.2.0"`; 0.3.3 is the first release where `antcrew_engine.__version__` matches the installed version at runtime.
+
+---
+
 ## [0.3.2] — 2026-07-09
 
 ### Fixed

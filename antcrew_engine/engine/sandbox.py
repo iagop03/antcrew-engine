@@ -161,6 +161,7 @@ def _docker(
 
     docker_cmd: list[str] = [
         "docker", "run", "--rm",
+        "--user=65534:65534",  # nobody:nogroup — prevents container-escape via kernel vuln as root
         f"--memory={memory}",
         f"--memory-swap={memory}",  # disable swap
         f"--cpus={cpus}",
@@ -286,6 +287,7 @@ def _docker_with_install(
     image = _docker_image()
     docker_cmd: list[str] = [
         "docker", "run", "--rm",
+        "--user=65534:65534",  # nobody:nogroup — prevents container-escape via kernel vuln as root
         f"--memory={memory}",
         f"--memory-swap={memory}",
         f"--cpus={cpus}",

@@ -60,12 +60,22 @@ class TestRunner(BaseExecutor):
             and not prior.content.get("passed", True)
         )
 
+        # For MemoryStore+docker mode: requirements won't be on disk yet;
+        # pass the content so _run_in_tempdir can write it to the temp dir.
+        req_art = store.read(ArtifactId("pip_requirements"))
+        requirements_content = (
+            req_art.content
+            if req_art and isinstance(req_art.content, str)
+            else None
+        )
+
         fs_root = store.filesystem_path()
         if fs_root is not None:
             proc = _run_on_filesystem(fs_root, sources, tests, python,
                                       last_failed=last_failed)
         else:
-            proc = _run_in_tempdir(sources, tests, python)
+            proc = _run_in_tempdir(sources, tests, python,
+                                   requirements_content=requirements_content)
 
         output = (proc.stdout + proc.stderr)[-_MAX_OUTPUT:]
         report = {
@@ -87,7 +97,9 @@ def _run_on_filesystem(
 ) -> subprocess.CompletedProcess:
     """Run pytest directly against the FilesystemStore root — no temp copy.
 
-    Uses DockerSandbox when available (ANTCREW_SANDBOX=auto|required).
+    When ANTCREW_SANDBOX=docker and a requirements.txt is present, delegates to
+    run_with_install() so pip install and pytest share a single container — no
+    packages are installed on the host.
     Falls back to direct subprocess when Docker is absent and mode is 'auto'.
     """
     _ensure_init_files(sources, root)   # source packages only — tests dir stays clean
@@ -97,13 +109,21 @@ def _run_on_filesystem(
             "--ignore=.antcrew", "--ignore=venv", "--ignore=.venv"]
     if last_failed:
         args.append("--lf")
+
+    req_file = root / "requirements.txt"
+    if req_file.exists() and _sandbox.use_docker():
+        return _sandbox.run_with_install(args, cwd=root, requirements=req_file, env=env)
     return _sandbox.run(args, cwd=root, env=env)
 
 
-def _run_in_tempdir(sources, tests, python: str) -> subprocess.CompletedProcess:
+def _run_in_tempdir(
+    sources, tests, python: str, *, requirements_content: str | None = None
+) -> subprocess.CompletedProcess:
     """Write artifacts to a temp dir and run pytest there (MemoryStore path).
 
-    Uses DockerSandbox when available (ANTCREW_SANDBOX=auto|required).
+    When ANTCREW_SANDBOX=docker and requirements_content is provided, writes
+    requirements.txt into the temp dir and delegates to run_with_install() so
+    the install step also runs inside the container.
     Falls back to direct subprocess when Docker is absent and mode is 'auto'.
     """
     with tempfile.TemporaryDirectory(prefix="antcrew_run_") as tmp:
@@ -112,6 +132,14 @@ def _run_in_tempdir(sources, tests, python: str) -> subprocess.CompletedProcess:
         _write_artifacts(tests, root)
         _setup_project_structure(sources, root)
         env = {**os.environ, "PYTHONPATH": str(root)}
+
+        req_file = root / "requirements.txt"
+        if requirements_content and _sandbox.use_docker():
+            req_file.write_text(requirements_content, encoding="utf-8")
+            return _sandbox.run_with_install(
+                [python, "-m", "pytest", str(root), "--tb=short", "-q"],
+                cwd=root, requirements=req_file, env=env,
+            )
         return _sandbox.run(
             [python, "-m", "pytest", str(root), "--tb=short", "-q"],
             cwd=root, env=env,
@@ -125,6 +153,8 @@ def _run_in_tempdir(sources, tests, python: str) -> subprocess.CompletedProcess:
 def _resolve_python(store) -> str:
     config = store.read(ArtifactId("venv_config"))
     if config and isinstance(config.content, dict):
+        if config.content.get("docker_mode"):
+            return "python"  # Docker image provides its own interpreter
         python_bin = config.content.get("python_bin")
         if python_bin and Path(python_bin).exists():
             return python_bin

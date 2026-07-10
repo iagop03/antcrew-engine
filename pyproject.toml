@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "antcrew-engine"
-version = "0.3.3"
+version = "0.3.4"
 description = "Capability-driven autonomous project execution engine (antcrew Layer 2)"
 readme = "README.md"
 requires-python = ">=3.11"

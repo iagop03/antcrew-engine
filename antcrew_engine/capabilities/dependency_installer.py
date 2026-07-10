@@ -9,6 +9,7 @@ from antcrew_engine.engine import (
     Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
     CapabilityDescriptor, CapabilityResult, ConditionId,
 )
+from antcrew_engine.engine import sandbox as _sandbox
 from ._utils import head as _head
 from .base import BaseExecutor
 
@@ -82,6 +83,30 @@ class DependencyInstaller(BaseExecutor):
             )
             requirements_txt = self._call(system, user).strip()
 
+        req_artifact = Artifact(
+            id       = ArtifactId("pip_requirements"),
+            kind     = ArtifactKind.CONFIG,
+            content  = requirements_txt,
+            metadata = {"file_path": "requirements.txt"},
+        )
+
+        if _sandbox.use_docker():
+            # Docker mode: skip host venv entirely.
+            # TestRunner will run pip install + pytest in a single container
+            # so malicious setup.py / post-install hooks never touch the host.
+            config_artifact = Artifact(
+                id       = ArtifactId("venv_config"),
+                kind     = ArtifactKind.CONFIG,
+                content  = {
+                    "docker_mode":    True,
+                    "install_ok":     True,
+                    "install_output": "(deferred to Docker sandbox)",
+                },
+                metadata = {"file_path": ".antcrew/venv_config.json"},
+            )
+            return CapabilityResult(delta=ArtifactDelta(created=(config_artifact, req_artifact)))
+
+        # Host mode (ANTCREW_SANDBOX=none or Docker unavailable): install into a local venv.
         venv_path = _resolve_venv_path(store)
         _ensure_venv(venv_path)
         ok, install_output = _install(venv_path, requirements_txt)
@@ -92,18 +117,13 @@ class DependencyInstaller(BaseExecutor):
             id       = ArtifactId("venv_config"),
             kind     = ArtifactKind.CONFIG,
             content  = {
+                "docker_mode":    False,
                 "venv_path":      str(venv_path),
                 "python_bin":     str(python_bin),
                 "install_ok":     ok,
                 "install_output": install_output[-_MAX_OUTPUT:],
             },
             metadata = {"file_path": ".antcrew/venv_config.json"},
-        )
-        req_artifact = Artifact(
-            id       = ArtifactId("pip_requirements"),
-            kind     = ArtifactKind.CONFIG,
-            content  = requirements_txt,
-            metadata = {"file_path": "requirements.txt"},
         )
 
         if not ok:

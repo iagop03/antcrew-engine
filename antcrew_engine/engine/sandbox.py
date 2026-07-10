@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -54,6 +55,24 @@ def is_available() -> bool:
 
 def _mode() -> str:
     return os.environ.get("ANTCREW_SANDBOX", "auto").lower()
+
+
+def use_docker() -> bool:
+    """True when the current configuration would route execution through Docker.
+
+    Returns False on Windows (bind-mount path translation not supported),
+    when ANTCREW_SANDBOX=none, or when mode is 'auto' but Docker is absent.
+    Returns True when mode is 'required' even if Docker is not yet confirmed
+    available — the error surfaces at run time via run() / run_with_install().
+    """
+    if sys.platform == "win32":
+        return False
+    mode = _mode()
+    if mode == "none":
+        return False
+    if mode == "required":
+        return True
+    return is_available()  # auto: only True when Docker is actually reachable
 
 
 def _docker_image() -> str:
@@ -197,3 +216,107 @@ def _direct(
         env=env or os.environ,
         timeout=timeout,
     )
+
+
+# ---------------------------------------------------------------------------
+# Install-then-test: single container for full isolation
+# ---------------------------------------------------------------------------
+
+def run_with_install(
+    args: list[str],
+    *,
+    cwd: Path,
+    requirements: Path,
+    env: Optional[dict[str, str]] = None,
+    timeout: int = 300,
+    memory: str = "512m",
+    cpus: str = "1.0",
+    pids_limit: int = 512,
+) -> subprocess.CompletedProcess:
+    """Run ``pip install -r requirements`` then *args* in a single Docker container.
+
+    Both steps share one ephemeral container so packages installed by pip are
+    available to the test process without any host-side venv.  Network access
+    is kept open for the duration (pip needs it); this is acceptable because
+    the entire execution — including pip's post-install hooks — is isolated
+    inside Docker and cannot touch the host filesystem beyond *cwd*.
+
+    Falls back to ``_direct(args)`` when Docker is unavailable or mode is
+    'none'; in that case the host must already have the packages installed.
+    """
+    mode = _mode()
+    if mode == "none" or sys.platform == "win32":
+        return _direct(args, cwd=cwd, env=env, timeout=timeout)
+
+    if not is_available():
+        if mode == "required":
+            raise RuntimeError(
+                "ANTCREW_SANDBOX=required but Docker is not available. "
+                "Install Docker or set ANTCREW_SANDBOX=auto to allow unsandboxed fallback."
+            )
+        log.warning(
+            "sandbox: Docker unavailable — running %s unsandboxed",
+            args[0] if args else "command",
+        )
+        return _direct(args, cwd=cwd, env=env, timeout=timeout)
+
+    return _docker_with_install(
+        args, cwd=cwd, requirements=requirements, env=env,
+        timeout=timeout, memory=memory, cpus=cpus, pids_limit=pids_limit,
+    )
+
+
+def _docker_with_install(
+    args: list[str],
+    *,
+    cwd: Path,
+    requirements: Path,
+    env: Optional[dict[str, str]],
+    timeout: int,
+    memory: str,
+    cpus: str,
+    pids_limit: int,
+) -> subprocess.CompletedProcess:
+    cwd_str = str(cwd.resolve())
+    # requirements.txt is inside cwd, so it's already mounted at the same path
+    req_inside = shlex.quote(f"{cwd_str}/requirements.txt")
+    test_cmd   = shlex.join(args)
+    shell_script = f"pip install -r {req_inside} -q && {test_cmd}"
+
+    image = _docker_image()
+    docker_cmd: list[str] = [
+        "docker", "run", "--rm",
+        f"--memory={memory}",
+        f"--memory-swap={memory}",
+        f"--cpus={cpus}",
+        f"--pids-limit={pids_limit}",
+        # Network intentionally open: pip install requires internet.
+        # Post-install hooks and the test process run inside this container,
+        # not on the host.
+        "--security-opt=no-new-privileges",
+        f"--stop-timeout={min(timeout, 120)}",
+        "-v", f"{cwd_str}:{cwd_str}",
+        "-w", cwd_str,
+    ]
+
+    for key, val in (env or os.environ).items():
+        if key in ("PYTHONPATH", "PYTHONDONTWRITEBYTECODE", "HOME", "TMPDIR", "TMP", "TEMP"):
+            docker_cmd += ["-e", f"{key}={val}"]
+
+    docker_cmd += [image, "/bin/sh", "-c", shell_script]
+
+    log.debug("sandbox: install+test %s", " ".join(docker_cmd[:10]) + " ...")
+    try:
+        return subprocess.run(
+            docker_cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 10,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args=docker_cmd,
+            returncode=124,
+            stdout="",
+            stderr=f"[sandbox] Docker container killed after {timeout}s timeout",
+        )

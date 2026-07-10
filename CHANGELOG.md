@@ -2,6 +2,19 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.4] — 2026-07-10
+
+### Security
+- **`DependencyInstaller`: full sandbox for `pip install`** — when `ANTCREW_SANDBOX=auto|required` and Docker is available, the capability now skips the host-side venv entirely and stores `docker_mode: True` in `venv_config`. `TestRunner` then runs a single container (`docker run --rm`) that executes `pip install -r requirements.txt && pytest` sequentially — both steps are isolated from the host. Malicious `setup.py` post-install hooks and test code can no longer touch the host filesystem or processes.
+- **`sandbox.use_docker()`** — new public helper that returns `True` when the current configuration would route execution through Docker; used by both capabilities to branch consistently.
+- **`sandbox.run_with_install()`** — new function that composes `pip install` and the test command into a single `/bin/sh -c "pip install … && pytest …"` Docker invocation. Network is intentionally open (pip needs it); the entire session is contained inside Docker.
+
+### Changed
+- `TestRunner._resolve_python()` returns `"python"` when `venv_config.docker_mode` is `True` — the Docker image provides its own interpreter, no host venv path needed.
+- `_run_in_tempdir` (MemoryStore path) now accepts `requirements_content` and writes it to the temp dir before calling `run_with_install()`, so the MemoryStore path gets the same isolation as the FilesystemStore path.
+
+---
+
 ## [0.3.3] — 2026-07-10
 
 ### Fixed

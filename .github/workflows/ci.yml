@@ -28,3 +28,23 @@ jobs:
         run: python -m pytest tests/ -q --tb=short
         env:
           ANTCREW_SANDBOX: none   # host Python path doesn't exist inside Docker image
+
+  pypi-compat:
+    name: PyPI compat (published wheel)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install published antcrew-engine from PyPI (not editable)
+        run: pip install "antcrew-engine[dev]"
+
+      - name: Run tests against installed wheel
+        run: python -m pytest tests/ -q --tb=short
+        env:
+          ANTCREW_SANDBOX: none

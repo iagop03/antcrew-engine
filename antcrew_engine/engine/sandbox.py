@@ -76,7 +76,19 @@ def use_docker() -> bool:
 
 
 def _docker_image() -> str:
-    """Match major.minor of the host Python for maximum package compat."""
+    """Return the Docker image to use for sandbox execution.
+
+    Defaults to ``python:{major}.{minor}-slim`` (mutable tag, matches host Python).
+    For production, override with a pinned digest to guarantee reproducibility:
+
+      ANTCREW_SANDBOX_IMAGE=python:3.12-slim@sha256:<digest>
+
+    Pin a new digest by running:
+      docker pull python:3.12-slim && docker inspect python:3.12-slim --format '{{index .RepoDigests 0}}'
+    """
+    override = os.environ.get("ANTCREW_SANDBOX_IMAGE")
+    if override:
+        return override
     vi = sys.version_info
     return f"python:{vi.major}.{vi.minor}-slim"
 

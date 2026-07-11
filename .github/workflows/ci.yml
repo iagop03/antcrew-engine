@@ -48,3 +48,26 @@ jobs:
         run: python -m pytest tests/ -q --tb=short
         env:
           ANTCREW_SANDBOX: none
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package and security tools
+        run: |
+          pip install -e ".[dev]"
+          pip install "bandit[toml]" pip-audit
+
+      - name: bandit — static security analysis (MEDIUM+)
+        # -ll  skip LOW severity   -ii  skip LOW confidence
+        run: bandit -r antcrew_engine/ -ll -ii
+
+      - name: pip-audit — dependency CVE scan
+        run: pip-audit

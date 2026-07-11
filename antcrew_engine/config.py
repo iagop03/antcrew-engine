@@ -5,10 +5,12 @@ Only contains ``build_llm()``.  Use ``antcrew.config`` for the full loader
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from antcrew_engine.models.base import BaseLLM
 
 
-def build_llm(model_str: str, *, prompt_caching: bool = False) -> BaseLLM:
+def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional[str] = None) -> BaseLLM:
     """Parse a model string and return a configured LLM instance.
 
     Supported forms::
@@ -43,11 +45,11 @@ def build_llm(model_str: str, *, prompt_caching: bool = False) -> BaseLLM:
 
     if s.startswith("openai:"):
         from antcrew_engine.models.openai_model import OpenAIModel
-        return OpenAIModel(s.split(":", 1)[1])
+        return OpenAIModel(s.split(":", 1)[1], **({"api_key": api_key} if api_key else {}))
 
     if s.startswith("gpt") or s.startswith("o1") or s.startswith("o3"):
         from antcrew_engine.models.openai_model import OpenAIModel
-        return OpenAIModel(s)
+        return OpenAIModel(s, **({"api_key": api_key} if api_key else {}))
 
     if s.startswith("gemini"):
         from antcrew_engine.models.gemini_model import GeminiModel
@@ -68,4 +70,5 @@ def build_llm(model_str: str, *, prompt_caching: bool = False) -> BaseLLM:
     return AnthropicModel(
         **({"model": model_id} if model_id else {}),
         prompt_caching=prompt_caching,
+        **({"api_key": api_key} if api_key else {}),
     )

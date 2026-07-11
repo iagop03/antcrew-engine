@@ -132,9 +132,18 @@ class FilesystemStore:
             json.dumps(manifest, indent=2, default=str), encoding="utf-8"
         )
 
+    def _safe_path(self, rel: str) -> Path:
+        """Resolve *rel* under _root; raise ValueError if it escapes (path traversal guard)."""
+        if Path(rel).is_absolute():
+            raise ValueError(f"Artifact path must be relative, got: {rel!r}")
+        resolved = (self._root / rel).resolve()
+        if not resolved.is_relative_to(self._root):
+            raise ValueError(f"Artifact path escapes store root: {rel!r}")
+        return resolved
+
     def _file_path(self, artifact_id: str, entry: dict[str, Any]) -> Path:
         rel = entry.get("file_path") or artifact_id
-        return self._root / rel
+        return self._safe_path(rel)
 
     # ------------------------------------------------------------------
     # Protocol implementation
@@ -172,7 +181,7 @@ class FilesystemStore:
     def write(self, artifact: Artifact) -> None:
         manifest = self._load_manifest()
         rel = artifact.metadata.get("file_path") or str(artifact.id)
-        path = self._root / rel
+        path = self._safe_path(rel)
         path.parent.mkdir(parents=True, exist_ok=True)
         body = (
             artifact.content

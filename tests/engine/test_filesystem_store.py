@@ -200,3 +200,61 @@ class TestPersistence:
         result = store.read(ArtifactId("r"))
         assert result.location is not None
         assert result.location.exists()
+
+
+# ---------------------------------------------------------------------------
+# Path traversal guard
+# ---------------------------------------------------------------------------
+
+class TestPathTraversal:
+    """LLM-controlled file_path must never escape store root."""
+
+    def _art(self, file_path: str) -> Artifact:
+        return Artifact(
+            id=ArtifactId("x"),
+            kind=ArtifactKind.SOURCE,
+            content="evil",
+            metadata={"file_path": file_path},
+        )
+
+    def test_dotdot_traversal_is_rejected(self, store):
+        with pytest.raises(ValueError, match="escapes store root"):
+            store.write(self._art("subdir/../../escape.txt"))
+
+    def test_absolute_path_is_rejected(self, store, tmp_path):
+        # On POSIX, caught by is_absolute() check ("must be relative").
+        # On Windows, /etc/... has no drive so pathlib treats it as relative-to-drive,
+        # but it still escapes root → caught by is_relative_to() check.
+        with pytest.raises(ValueError):
+            store.write(self._art("/etc/cron.d/evil"))
+
+    def test_deep_dotdot_traversal_is_rejected(self, store):
+        with pytest.raises(ValueError, match="escapes store root"):
+            store.write(self._art("../../../../tmp/evil.txt"))
+
+    def test_windows_style_absolute_rejected(self, store):
+        with pytest.raises(ValueError, match="must be relative"):
+            store.write(self._art("C:\\Windows\\System32\\evil.txt"))
+
+    def test_legitimate_nested_path_is_allowed(self, store):
+        art = Artifact(
+            id=ArtifactId("src/api/routes.py"),
+            kind=ArtifactKind.SOURCE,
+            content="# routes",
+            metadata={"file_path": "src/api/routes.py"},
+        )
+        store.write(art)  # must not raise
+        assert store.has(ArtifactId("src/api/routes.py"))
+
+    def test_safe_path_does_not_escape(self, store, tmp_path):
+        """Verify written file is physically inside the store root."""
+        art = Artifact(
+            id=ArtifactId("src/utils.py"),
+            kind=ArtifactKind.SOURCE,
+            content="# utils",
+            metadata={"file_path": "src/utils.py"},
+        )
+        store.write(art)
+        written = store.read(ArtifactId("src/utils.py"))
+        assert written is not None
+        assert written.location.resolve().is_relative_to(tmp_path)

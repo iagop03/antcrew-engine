@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Protocol, runtime_checkable
 
 from .artifact import Artifact, ArtifactId, ArtifactDelta, ArtifactKind
@@ -134,7 +134,8 @@ class FilesystemStore:
 
     def _safe_path(self, rel: str) -> Path:
         """Resolve *rel* under _root; raise ValueError if it escapes (path traversal guard)."""
-        if Path(rel).is_absolute():
+        # PureWindowsPath catches "C:\..." on POSIX where Path.is_absolute() returns False.
+        if Path(rel).is_absolute() or PureWindowsPath(rel).is_absolute():
             raise ValueError(f"Artifact path must be relative, got: {rel!r}")
         resolved = (self._root / rel).resolve()
         if not resolved.is_relative_to(self._root):

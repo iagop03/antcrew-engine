@@ -565,7 +565,8 @@ def status(
     if total == 0:
         console.print("[yellow]Store is empty.[/]")
         raise typer.Exit()
-    console.print(); console.print(art_table)
+    console.print()
+    console.print(art_table)
 
     validators = _build_validators()
     cond_table = Table(title="Conditions", show_header=True, header_style="bold dim")
@@ -577,5 +578,6 @@ def status(
         icon   = "[green]PASS[/]" if result.satisfied else "[red]FAIL[/]"
         detail = ", ".join(f"{k}={val}" for k, val in (result.observations or {}).items())
         cond_table.add_row(str(result.condition_id), icon, detail[:60])
-    console.print(); console.print(cond_table)
+    console.print()
+    console.print(cond_table)
     console.print(f"\n[dim]{total} artifact(s) in {project_dir}[/]")

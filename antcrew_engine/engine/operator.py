@@ -20,13 +20,12 @@ Escape conditions:
 from __future__ import annotations
 
 import threading
-from dataclasses import dataclass, field
 from datetime import datetime, UTC
 from enum import Enum, auto
 from typing import Callable
 
 from .artifact import ArtifactId
-from .capability import Executor, CapabilityResult
+from .capability import Executor
 from .selector import CapabilitySelector, CheapestFirst
 from .events import (
     EventLog, EngineStarted, EngineFinished, EngineError,

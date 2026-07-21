@@ -62,7 +62,9 @@ class EventBusBridge:
         if on_event is None:
             try:
                 from antcrew.core.events import bus, Event as BusEvent
-                on_event = lambda t, d, **kw: bus.emit(BusEvent(t, d, **kw))
+
+                def on_event(t, d, **kw):
+                    bus.emit(BusEvent(t, d, **kw))
             except ImportError:
                 return
 

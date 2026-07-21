@@ -15,6 +15,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Optional
 
+from antcrew_engine.engine import CapabilityResult, EMPTY_DELTA
+
 _MAX_RETRIES      = 3
 _RETRY_BASE_S     = 1.0   # first retry after 1 s, then 2 s, then 4 s
 _MAX_JSON_RETRIES = 2     # extra attempts when LLM produces malformed JSON
@@ -32,8 +34,6 @@ def _is_transient_error(exc: Exception) -> bool:
         any(k in name for k in _TRANSIENT_NAMES)
         or any(k in msg  for k in _TRANSIENT_MSGS)
     )
-
-from antcrew_engine.engine import CapabilityResult, EMPTY_DELTA
 
 if TYPE_CHECKING:
     from antcrew_engine.engine import ArtifactStore, Goal

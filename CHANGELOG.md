@@ -2,6 +2,32 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.6] — 2026-07-24
+
+### Added
+- **PEP 561 typing support** — `py.typed` marker file added to the `antcrew_engine` package; mypy and pyright now recognize type information when importing from `antcrew_engine.*` directly (e.g. from antcrew-platform)
+- `[tool.mypy]` configuration added to `pyproject.toml` (`python_version = "3.11"`, `ignore_missing_imports = true`)
+
+---
+
+## [0.3.5] — 2026-07-14
+
+### Security
+- **`FilesystemStore` path traversal guard** — `_safe_path()` now rejects dotdot sequences, absolute POSIX paths, Windows-style absolute paths, and deeply nested escape attempts; LLM-controlled `file_path` values can no longer escape `store._root`; `MultiRepoStore` inherits the fix automatically via `FilesystemStore.write()`
+- **Docker containers run as nobody:nogroup** — `run_with_install()` passes `--user=65534:65534` instead of the default root; removes `--user` shorthand that was overriding this on some Docker versions
+- **`ANTCREW_SANDBOX_IMAGE`** env override — allows pinning the test sandbox to a specific image digest for supply-chain integrity
+
+### Added
+- **BYOK: `api_key` param in `build_llm()`** — passes an optional customer-supplied key to `AnthropicModel` and `OpenAIModel` so antcrew-platform can inject BYOK keys without touching environment variables
+
+### Fixed
+- **`FilesystemStore`**: rejects Windows-style absolute paths on POSIX (detected via `PureWindowsPath`) to prevent path confusion on cross-platform runs
+
+### Changed
+- CI: lint job added; 8 pre-existing ruff violations resolved
+
+---
+
 ## [0.3.4] — 2026-07-10
 
 ### Security

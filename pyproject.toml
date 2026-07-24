@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "antcrew-engine"
-version = "0.3.5"
+version = "0.3.6"
 description = "Capability-driven autonomous project execution engine (antcrew Layer 2)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -43,6 +43,12 @@ Repository = "https://github.com/iagop03/antcrew"
 
 [tool.hatch.build.targets.wheel]
 packages = ["antcrew_engine"]
+# PEP 561 — declares full typing support; hatchling includes py.typed automatically.
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 100

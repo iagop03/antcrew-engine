@@ -18,9 +18,15 @@ import re
 from pathlib import Path
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
+
 from .base import BaseExecutor
 
 _SYSTEM = """\

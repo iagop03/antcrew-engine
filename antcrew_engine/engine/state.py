@@ -8,7 +8,7 @@ The EngineLoop reasons over ProjectState.  It never reads the Store directly.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from .goal import ConditionId, DesiredProjectState

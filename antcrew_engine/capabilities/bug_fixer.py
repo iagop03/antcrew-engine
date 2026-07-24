@@ -4,11 +4,17 @@ import re
 from pathlib import Path
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
-from .base import BaseExecutor
+
 from ._utils import parse_json
+from .base import BaseExecutor
 
 _SYSTEM = """\
 You are a senior developer fixing bugs revealed by failing tests.

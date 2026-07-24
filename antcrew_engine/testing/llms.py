@@ -1,7 +1,7 @@
 ﻿from __future__ import annotations
 
-from antcrew_engine.models.simulated import SimulatedLLM
 from antcrew_engine.models.base import Message
+from antcrew_engine.models.simulated import SimulatedLLM
 
 
 class SequencedLLM(SimulatedLLM):

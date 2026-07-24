@@ -21,42 +21,48 @@ Types:
 Entry point:
     EngineLoop.run(store, goal) → ProjectState
 """
+from . import sandbox
 from .artifact import (
+    EMPTY_DELTA,
     Artifact,
     ArtifactDelta,
     ArtifactId,
     ArtifactKind,
-    EMPTY_DELTA,
 )
+from .bus_bridge import EventBusBridge
 from .capability import CapabilityDescriptor, CapabilityResult, Executor
 from .events import (
     CapabilityCompleted,
     CapabilityDispatched,
     ConditionInvalidated,
     ConditionSatisfied,
+    EngineDecision,
     EngineError,
     EngineFinished,
     EngineStarted,
     Event,
     EventLog,
-    EngineDecision,
     StateObserved,
 )
 from .goal import Condition, ConditionId, Constraints, DesiredProjectState, Goal
+from .hitl import (
+    HitlDecision,
+    HitlRequestedPayload,
+    HitlResolvedPayload,
+    HitlReviewRequest,
+)
 from .operator import EngineLoop, EngineLoopError
 from .registry import CapabilityRegistry
 from .selector import (
-    CapabilitySelector, CheapestFirst, FirstMatch, MostProductive, PrioritySelector,
+    CapabilitySelector,
+    CheapestFirst,
+    FirstMatch,
+    MostProductive,
+    PrioritySelector,
 )
 from .state import ProjectState
-from .store import ArtifactStore, MemoryStore, FilesystemStore, MultiRepoStore
+from .store import ArtifactStore, FilesystemStore, MemoryStore, MultiRepoStore
 from .validator import Validator, ValidatorResult
-from .bus_bridge import EventBusBridge
-from . import sandbox
-from .hitl import (
-    HitlReviewRequest, HitlDecision,
-    HitlRequestedPayload, HitlResolvedPayload,
-)
 
 __all__ = [
     # artifact

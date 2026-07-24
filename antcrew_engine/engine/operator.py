@@ -20,20 +20,26 @@ Escape conditions:
 from __future__ import annotations
 
 import threading
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import Enum, auto
 from typing import Callable
 
 from .artifact import ArtifactId
 from .capability import Executor
-from .selector import CapabilitySelector, CheapestFirst
 from .events import (
-    EventLog, EngineStarted, EngineFinished, EngineError,
-    StateObserved, CapabilityDispatched, CapabilityCompleted,
-    ConditionSatisfied, EngineDecision,
+    CapabilityCompleted,
+    CapabilityDispatched,
+    ConditionSatisfied,
+    EngineDecision,
+    EngineError,
+    EngineFinished,
+    EngineStarted,
+    EventLog,
+    StateObserved,
 )
 from .goal import ConditionId, Goal
 from .registry import CapabilityRegistry
+from .selector import CapabilitySelector, CheapestFirst
 from .state import ProjectState
 from .store import ArtifactStore
 from .validator import Validator

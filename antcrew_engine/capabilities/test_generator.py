@@ -4,11 +4,17 @@ import os
 from pathlib import Path
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
-from .base import BaseExecutor
+
 from ._utils import head as _head
+from .base import BaseExecutor
 
 _SYSTEM = """\
 You are a senior software developer writing pytest tests.

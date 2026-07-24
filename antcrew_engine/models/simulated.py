@@ -1,7 +1,14 @@
 ﻿from __future__ import annotations
 
 import json
-from antcrew_engine.models._engine_fixtures import REQUIREMENTS as _ENG_REQ, ARCHITECTURE as _ENG_ARCH, TASKS as _ENG_TASKS, FILE_PLAN as _ENG_FILE_PLAN, FILE_CONTENT as _ENG_FILE_CONTENT, TEST_CODE as _ENG_TEST, REVIEW as _ENG_REVIEW
+
+from antcrew_engine.models._engine_fixtures import ARCHITECTURE as _ENG_ARCH
+from antcrew_engine.models._engine_fixtures import FILE_CONTENT as _ENG_FILE_CONTENT
+from antcrew_engine.models._engine_fixtures import FILE_PLAN as _ENG_FILE_PLAN
+from antcrew_engine.models._engine_fixtures import REQUIREMENTS as _ENG_REQ
+from antcrew_engine.models._engine_fixtures import REVIEW as _ENG_REVIEW
+from antcrew_engine.models._engine_fixtures import TASKS as _ENG_TASKS
+from antcrew_engine.models._engine_fixtures import TEST_CODE as _ENG_TEST
 from antcrew_engine.models.base import BaseLLM, Message
 
 # ---------------------------------------------------------------------------

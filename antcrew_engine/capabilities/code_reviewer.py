@@ -1,11 +1,18 @@
 ﻿from __future__ import annotations
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
+
+from ._utils import head as _head
+from ._utils import parse_json
 from .base import BaseExecutor
-from ._utils import head as _head, parse_json
 
 _SYSTEM = """\
 You are a senior software engineer conducting a code review.

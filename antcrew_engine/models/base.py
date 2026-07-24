@@ -6,13 +6,15 @@ import random
 import time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Literal, Optional
+
 from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from antcrew_engine.models.cache import LLMCache
     from antcrew.trace import TraceLog
+
+    from antcrew_engine.models.cache import LLMCache
 
 
 def _is_complete_response(text: str) -> bool:
@@ -347,6 +349,7 @@ class BaseLLM(ABC):
             llm = AnthropicModel().with_cache("~/.antcrew/cache.db")
         """
         import os
+
         from antcrew_engine.models.cache import LLMCache as _LLMCache
         if isinstance(cache, (str, os.PathLike)):
             from antcrew_engine.models.cache import FileLLMCache as _FC

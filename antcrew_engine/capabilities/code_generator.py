@@ -1,15 +1,22 @@
 ﻿from __future__ import annotations
 
+import concurrent.futures as _cf
 import copy
 import json
-import concurrent.futures as _cf
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
+
+from ._utils import head as _head
+from ._utils import parse_json
 from .base import BaseExecutor
-from ._utils import parse_json, head as _head
 
 _SYSTEM = """\
 You are a senior software developer implementing a development task.

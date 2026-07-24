@@ -15,7 +15,7 @@ import json
 from pathlib import Path, PureWindowsPath
 from typing import Any, Protocol, runtime_checkable
 
-from .artifact import Artifact, ArtifactId, ArtifactDelta, ArtifactKind
+from .artifact import Artifact, ArtifactDelta, ArtifactId, ArtifactKind
 
 
 @runtime_checkable

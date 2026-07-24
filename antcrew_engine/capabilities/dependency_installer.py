@@ -6,10 +6,16 @@ import tempfile
 from pathlib import Path
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
 from antcrew_engine.engine import sandbox as _sandbox
+
 from ._utils import head as _head
 from .base import BaseExecutor
 

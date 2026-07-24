@@ -24,7 +24,7 @@ which is fine when both packages are installed together (e.g. antcrew-platform).
 """
 from __future__ import annotations
 
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from .events import EventLog
 
@@ -61,7 +61,8 @@ class EventBusBridge:
         on_event = self._on_event
         if on_event is None:
             try:
-                from antcrew.core.events import bus, Event as BusEvent
+                from antcrew.core.events import Event as BusEvent
+                from antcrew.core.events import bus
 
                 def on_event(t, d, **kw):
                     bus.emit(BusEvent(t, d, **kw))

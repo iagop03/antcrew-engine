@@ -18,10 +18,11 @@ Canonical flow
 from __future__ import annotations
 
 from typing import Any, Literal, Optional
+
 try:
-    from typing import TypedDict, NotRequired
+    from typing import NotRequired, TypedDict
 except ImportError:
-    from typing_extensions import TypedDict, NotRequired  # type: ignore[assignment]
+    from typing_extensions import NotRequired, TypedDict  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------------

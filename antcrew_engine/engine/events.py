@@ -14,7 +14,7 @@ For async delivery, wrap in an async adapter at the subscriber level.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Callable
 
 from .capability import CapabilityResult

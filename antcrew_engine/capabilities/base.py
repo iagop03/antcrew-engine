@@ -15,7 +15,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Optional
 
-from antcrew_engine.engine import CapabilityResult, EMPTY_DELTA
+from antcrew_engine.engine import EMPTY_DELTA, CapabilityResult
 
 _MAX_RETRIES      = 3
 _RETRY_BASE_S     = 1.0   # first retry after 1 s, then 2 s, then 4 s

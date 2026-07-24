@@ -31,9 +31,14 @@ map specific fields from the team's output dict into typed engine Artifacts.
 from __future__ import annotations
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
 )
+
 from .base import BaseExecutor
 
 

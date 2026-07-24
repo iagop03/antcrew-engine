@@ -17,21 +17,45 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from antcrew_engine.engine import (
-    Artifact, ArtifactId, ArtifactKind,
-    CapabilityRegistry, Condition, ConditionId, Constraints,
-    DesiredProjectState, EventLog, FilesystemStore, Goal, MemoryStore,
-    MultiRepoStore, EngineLoop,
-)
 from antcrew_engine.capabilities import (
-    Architect, BugFixer, CodeGenerator, CodeRegenerator, CodeReviewer,
-    DependencyInstaller, DocGenerator, ReviewFixer, TaskPlanner, TestGenerator, TestRunner,
+    Architect,
+    BugFixer,
+    CodeGenerator,
+    CodeRegenerator,
+    CodeReviewer,
+    DependencyInstaller,
+    DocGenerator,
+    ReviewFixer,
+    TaskPlanner,
+    TestGenerator,
+    TestRunner,
 )
 from antcrew_engine.capabilities.validators import (
-    AllTasksCompletedValidator, CodeReviewedValidator, DependenciesInstalledValidator,
-    DocumentationExistsValidator, TestsExistValidator, TestsPassValidator, artifact_validators,
+    AllTasksCompletedValidator,
+    CodeReviewedValidator,
+    DependenciesInstalledValidator,
+    DocumentationExistsValidator,
+    TestsExistValidator,
+    TestsPassValidator,
+    artifact_validators,
 )
 from antcrew_engine.config import build_llm as _build_llm
+from antcrew_engine.engine import (
+    Artifact,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityRegistry,
+    Condition,
+    ConditionId,
+    Constraints,
+    DesiredProjectState,
+    EngineLoop,
+    EventLog,
+    FilesystemStore,
+    Goal,
+    MemoryStore,
+    MultiRepoStore,
+)
 
 app = typer.Typer(
     name="antcrew-engine",

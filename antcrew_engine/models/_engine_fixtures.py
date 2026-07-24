@@ -4,6 +4,7 @@ These are used by antcrew/capabilities/ executors.
 Kept separate to avoid encoding issues in the main simulated.py file.
 """
 from __future__ import annotations
+
 import json
 
 REQUIREMENTS = (

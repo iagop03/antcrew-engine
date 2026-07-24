@@ -22,9 +22,15 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
+
 from .base import BaseExecutor
 
 _DEFAULT_TIMEOUT = 3600  # 1 hour

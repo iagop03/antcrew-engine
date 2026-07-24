@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from .artifact import ArtifactDelta, EMPTY_DELTA
+from .artifact import EMPTY_DELTA, ArtifactDelta
 from .goal import ConditionId
 
 if TYPE_CHECKING:

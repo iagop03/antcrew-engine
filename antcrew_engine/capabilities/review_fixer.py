@@ -7,10 +7,17 @@ loop is: review → (review fails N times) → fix → review again → ...
 from __future__ import annotations
 
 from antcrew_engine.engine import (
-    Artifact, ArtifactDelta, ArtifactId, ArtifactKind,
-    CapabilityDescriptor, CapabilityResult, ConditionId,
+    Artifact,
+    ArtifactDelta,
+    ArtifactId,
+    ArtifactKind,
+    CapabilityDescriptor,
+    CapabilityResult,
+    ConditionId,
 )
-from ._utils import parse_json, head as _head
+
+from ._utils import head as _head
+from ._utils import parse_json
 from .base import BaseExecutor
 
 _SYSTEM = """\

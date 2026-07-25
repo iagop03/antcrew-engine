@@ -2,6 +2,17 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.7] — 2026-07-26
+
+### Added
+- **`SecurityScannerCapability`** — static analysis capability that runs bandit (Python) or npm audit (Node) inside the sandbox and returns structured findings
+- **`MigrationPlannerCapability`** — generates Alembic migration plans from SQLModel schema diffs; compares current model state to DB state and outputs `upgrade()`/`downgrade()` skeletons
+
+### CI
+- **CHANGELOG version check** — CI now verifies that `pyproject.toml` version has a matching entry in `CHANGELOG.md` on every push/PR
+
+---
+
 ## [0.3.6] — 2026-07-24
 
 ### Added

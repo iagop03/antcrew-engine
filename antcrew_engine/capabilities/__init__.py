@@ -13,7 +13,9 @@ from .code_reviewer import CodeReviewer
 from .dependency_installer import DependencyInstaller
 from .doc_generator import DocGenerator
 from .hitl_reviewer import HitlReviewer
+from .migration_planner import MigrationPlanner
 from .review_fixer import ReviewFixer
+from .security_scanner import SecurityScanner
 from .spec_extractor import SpecExtractor
 from .task_planner import TaskPlanner
 from .team_executor import TeamExecutor
@@ -29,7 +31,9 @@ __all__ = [
     "DependencyInstaller",
     "DocGenerator",
     "HitlReviewer",
+    "MigrationPlanner",
     "ReviewFixer",
+    "SecurityScanner",
     "TestGenerator",
     "TestRunner",
     "BugFixer",

@@ -294,13 +294,15 @@ def _docker_with_install(
     # requirements.txt is inside cwd, so it's already mounted at the same path
     req_inside = shlex.quote(f"{cwd_str}/requirements.txt")
     test_cmd   = shlex.join(args)
-    shell_script = f"pip install -r {req_inside} -q && {test_cmd}"
+    # pip install --user writes to $HOME/.local (not system site-packages), so
+    # nobody (65534) can install when HOME=/tmp.  Python's site module picks up
+    # ~/.local automatically, so the test command finds all installed packages.
+    shell_script = f"pip install --user -q -r {req_inside} && {test_cmd}"
 
     image = _docker_image()
     docker_cmd: list[str] = [
         "docker", "run", "--rm",
-        # No --user here: pip install as nobody (65534) cannot write to Python site-packages.
-        # Isolation comes from Docker's namespace + no-new-privileges + pids-limit.
+        "--user=65534:65534",  # nobody:nogroup — same isolation as run_in_sandbox()
         f"--memory={memory}",
         f"--memory-swap={memory}",
         f"--cpus={cpus}",
@@ -312,10 +314,11 @@ def _docker_with_install(
         f"--stop-timeout={min(timeout, 120)}",
         "-v", f"{cwd_str}:{cwd_str}",
         "-w", cwd_str,
+        "-e", "HOME=/tmp",  # writable home for pip --user installs under nobody
     ]
 
     for key, val in (env or os.environ).items():
-        if key in ("PYTHONPATH", "PYTHONDONTWRITEBYTECODE", "HOME", "TMPDIR", "TMP", "TEMP"):
+        if key in ("PYTHONPATH", "PYTHONDONTWRITEBYTECODE", "TMPDIR", "TMP", "TEMP"):
             docker_cmd += ["-e", f"{key}={val}"]
 
     docker_cmd += [image, "/bin/sh", "-c", shell_script]

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from antcrew_engine.engine import (
     Artifact,
     ArtifactDelta,

@@ -2,6 +2,13 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.8] — 2026-07-26
+
+### Added
+- **`SecurityAuditor`** — LLM-based cross-file security consistency audit capability. Two-phase approach: Phase 1 catalogs every established defensive control in the codebase (auth guards, CSRF, rate limiting, input validation, encryption, etc.); Phase 2 finds code paths that perform equivalent operations but are missing the same controls, plus classic anti-patterns (SSRF, IDOR, path traversal, XSS, hardcoded secrets, fail-open auth, TOCTOU races). Returns a structured `REPORT` artifact with `AuditFinding` dicts (`severity`, `pattern_class`, `file_path`, `line_number`, `evidence`, `reference_fix`). The cross-file consistency check — "pattern exists in A, absent in B" — is the primary differentiator over per-file static linters like bandit.
+
+---
+
 ## [0.3.7] — 2026-07-26
 
 ### Added

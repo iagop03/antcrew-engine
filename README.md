@@ -148,6 +148,9 @@ store = MultiRepoStore(
 | `DocGenerator` | Writes README.md |
 | `HitlReviewer` | Pauses for human approval before proceeding |
 | `SpecExtractor` | Extracts a structured spec from a free-form description |
+| `SecurityScanner` | Runs bandit (Python) or npm audit (Node) static analysis in a sandbox |
+| `SecurityAuditor` | LLM cross-file security audit: catalogs established controls then finds consistency gaps and classic vulnerabilities across the repo |
+| `MigrationPlanner` | Generates Alembic migration plans from SQLModel schema diffs |
 
 ## Model support
 

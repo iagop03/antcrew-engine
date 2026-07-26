@@ -15,6 +15,7 @@ from .doc_generator import DocGenerator
 from .hitl_reviewer import HitlReviewer
 from .migration_planner import MigrationPlanner
 from .review_fixer import ReviewFixer
+from .security_auditor import SecurityAuditor
 from .security_scanner import SecurityScanner
 from .spec_extractor import SpecExtractor
 from .task_planner import TaskPlanner
@@ -33,6 +34,7 @@ __all__ = [
     "HitlReviewer",
     "MigrationPlanner",
     "ReviewFixer",
+    "SecurityAuditor",
     "SecurityScanner",
     "TestGenerator",
     "TestRunner",

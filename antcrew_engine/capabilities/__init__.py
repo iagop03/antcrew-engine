@@ -13,6 +13,7 @@ from .code_reviewer import CodeReviewer
 from .dependency_installer import DependencyInstaller
 from .doc_generator import DocGenerator
 from .hitl_reviewer import HitlReviewer
+from .manual_action import ManualActionCapability
 from .migration_planner import MigrationPlanner
 from .review_fixer import ReviewFixer
 from .security_auditor import SecurityAuditor
@@ -32,6 +33,7 @@ __all__ = [
     "DependencyInstaller",
     "DocGenerator",
     "HitlReviewer",
+    "ManualActionCapability",
     "MigrationPlanner",
     "ReviewFixer",
     "SecurityAuditor",

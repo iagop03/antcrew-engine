@@ -2,6 +2,16 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.9] — 2026-07-26
+
+### Added
+- **`ManualActionCapability`** — new capability that pauses the engine pipeline until a human completes a manual step. Activated by adding `"manual_action_done"` to the engine run's conditions list. The host platform (antcrew-platform) injects a `request_action` callback that creates a blocking ticket, sets the run to `blocked`, and waits on a `threading.Event` until the ticket is resolved. Without a callback (standalone use), the capability logs a warning and continues immediately.
+  - `needs` is configurable at construction time — set it to run the manual step after specific capabilities (e.g. `needs=frozenset([ConditionId("implementation_exists")])` to pause after code generation)
+  - `title`, `description`, `assignee` configure the blocking ticket content
+- **`ArtifactKind.MANUAL_ACTION`** — new artifact kind emitted by `ManualActionCapability` when the step is resolved; detected by the platform to unblock the run
+
+---
+
 ## [0.3.8] — 2026-07-26
 
 ### Added

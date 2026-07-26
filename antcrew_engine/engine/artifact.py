@@ -18,15 +18,16 @@ ArtifactId = NewType("ArtifactId", str)
 
 
 class ArtifactKind(str, Enum):
-    REQUIREMENTS = "requirements"
-    ARCHITECTURE = "architecture"
-    TASK_GRAPH   = "task_graph"
-    SOURCE       = "source"
-    TEST         = "test"
+    REQUIREMENTS  = "requirements"
+    ARCHITECTURE  = "architecture"
+    TASK_GRAPH    = "task_graph"
+    SOURCE        = "source"
+    TEST          = "test"
     DOCUMENTATION = "documentation"
-    CONFIG       = "config"
-    REPORT       = "report"
-    GENERIC      = "generic"
+    CONFIG        = "config"
+    REPORT        = "report"
+    MANUAL_ACTION = "manual_action"  # signal artifact: pipeline paused for human step
+    GENERIC       = "generic"
 
 
 @dataclass(frozen=True)

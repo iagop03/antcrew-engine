@@ -238,6 +238,7 @@ class SecurityAuditor(BaseExecutor):
             "catalog":  controls,
             "summary":  catalog_summary,
             "files_audited": included,
+            "sarif": findings_to_sarif(findings),
         }
 
         report_artifact = Artifact(
@@ -303,3 +304,71 @@ def _safe_parse_list(raw: str) -> list:
         return result if isinstance(result, list) else []
     except Exception:
         return []
+
+
+# ---------------------------------------------------------------------------
+# SARIF export
+# ---------------------------------------------------------------------------
+
+def findings_to_sarif(
+    findings: list[dict],
+    tool_name: str = "SecurityAuditor",
+    version: str = "1.0",
+) -> dict:
+    """Convert AuditFinding list to SARIF 2.1.0 format (OASIS standard)."""
+    _LEVEL_MAP = {
+        "critical": "error",
+        "high":     "error",
+        "medium":   "warning",
+        "low":      "note",
+        "info":     "none",
+    }
+    results = []
+    rules: dict[str, dict] = {}
+
+    for f in findings:
+        rule_id = f.get("pattern_class", "unknown")
+        if rule_id not in rules:
+            rules[rule_id] = {
+                "id": rule_id,
+                "name": rule_id,
+                "shortDescription": {"text": rule_id.replace("_", " ").title()},
+            }
+        result: dict = {
+            "ruleId": rule_id,
+            "level": _LEVEL_MAP.get(f.get("severity", "info"), "note"),
+            "message": {
+                "text": (
+                    f.get("title", "")
+                    + "\n\n"
+                    + f.get("evidence", "")
+                    + "\n\nFix: "
+                    + f.get("reference_fix", "")
+                )
+            },
+        }
+        if f.get("file_path"):
+            loc: dict = {"uri": f["file_path"]}
+            phys: dict = {"artifactLocation": loc}
+            if f.get("line_number"):
+                phys["region"] = {"startLine": f["line_number"]}
+            result["locations"] = [{"physicalLocation": phys}]
+        results.append(result)
+
+    return {
+        "version": "2.1.0",
+        "$schema": (
+            "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/"
+            "Schemata/sarif-schema-2.1.0.json"
+        ),
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": tool_name,
+                    "version": version,
+                    "rules": list(rules.values()),
+                }
+            },
+            "results": results,
+        }],
+    }

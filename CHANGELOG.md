@@ -2,6 +2,14 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## v0.3.10 (2026-07-28)
+
+### Added
+- **SARIF 2.1.0 export** — `SecurityAuditor` now includes a `sarif` key in its output artifact with a valid SARIF 2.1.0 document. Enables integration with GitHub Security tab, Semgrep App, and any OASIS-compatible vulnerability management tool. Use `run.artifacts["security_audit"]["sarif"]` to access it. New helper `findings_to_sarif()` is also importable standalone.
+- **Public exports** — `HitlRequested`, `HitlResolved`, and `artifact_validators` added to `antcrew_engine.__all__`. Previously these were importable only from internal paths (`antcrew_engine.engine.events` and `antcrew_engine.capabilities.validators`); now they are first-class public API. Fixes fragility against internal refactors documented in antcrew-platform v0.6.2.
+
+---
+
 ## [0.3.9] — 2026-07-26
 
 ### Added

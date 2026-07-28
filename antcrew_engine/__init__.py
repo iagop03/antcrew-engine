@@ -37,7 +37,9 @@ from antcrew_engine.capabilities import (
     TestGenerator,
     TestRunner,
 )
+from antcrew_engine.capabilities.validators import artifact_validators
 from antcrew_engine.config import build_llm
+from antcrew_engine.engine.events import HitlRequested, HitlResolved
 from antcrew_engine.engine import (
     EMPTY_DELTA,
     Artifact,
@@ -118,6 +120,8 @@ __all__ = [
     "HitlDecision",
     "HitlRequestedPayload",
     "HitlResolvedPayload",
+    "HitlRequested",
+    "HitlResolved",
     # capabilities
     "Architect",
     "TaskPlanner",
@@ -134,4 +138,6 @@ __all__ = [
     "TestRunner",
     # config
     "build_llm",
+    # validators
+    "artifact_validators",
 ]

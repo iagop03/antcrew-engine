@@ -39,7 +39,6 @@ from antcrew_engine.capabilities import (
 )
 from antcrew_engine.capabilities.validators import artifact_validators
 from antcrew_engine.config import build_llm
-from antcrew_engine.engine.events import HitlRequested, HitlResolved
 from antcrew_engine.engine import (
     EMPTY_DELTA,
     Artifact,
@@ -76,6 +75,7 @@ from antcrew_engine.engine import (
     Validator,
     ValidatorResult,
 )
+from antcrew_engine.engine.events import HitlRequested, HitlResolved
 
 try:
     from importlib.metadata import version as _v

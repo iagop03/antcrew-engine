@@ -23,7 +23,7 @@ class OllamaModel(BaseLLM):
     ) -> None:
         self.model = model
         self.base_url = base_url.rstrip("/")
-        self._timeout = timeout
+        self.timeout = timeout  # overrides BaseLLM.timeout (600s) with Ollama-appropriate default (300s)
 
     def complete(self, messages: list[Message], *, max_tokens: int = 16384, json_mode: bool = False) -> str:
         import json as _json

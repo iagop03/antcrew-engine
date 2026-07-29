@@ -34,7 +34,10 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
 
     if s.startswith("ollama:"):
         from antcrew_engine.models.ollama_model import OllamaModel
-        return OllamaModel(s.split(":", 1)[1])
+        kw: dict = {}
+        if base_url:
+            kw["base_url"] = base_url
+        return OllamaModel(s.split(":", 1)[1], **kw)
 
     if s.startswith("groq:"):
         from antcrew_engine.models.groq_model import GroqModel

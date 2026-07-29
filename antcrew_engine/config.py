@@ -15,16 +15,24 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
 
     Supported forms::
 
-        "claude"                  # default Anthropic (claude-sonnet-4-6)
+        "claude"                      # default Anthropic (claude-sonnet-4-6)
         "claude-haiku-4-5-20251001"
-        "gpt-4o"                  # OpenAI (requires openai extra)
+        "gpt-4o"                      # OpenAI (requires openai extra)
         "openai:gpt-4o-mini"
-        "ollama:llama3"
+        "ollama:llama3"               # local Ollama server
         "groq:llama3-70b-8192"
         "azure:my-deployment"
-        "gemini"                  # GeminiModel default
-        "moonshot:moonshot-v1-8k" # Moonshot AI / Kimi (OpenAI-compatible)
-        "simulated"               # deterministic stub for tests
+        "gemini"                      # GeminiModel default
+        "moonshot:moonshot-v1-8k"     # Moonshot AI / Kimi
+        "deepseek:deepseek-chat"      # DeepSeek
+        "mistral:mistral-large-latest"
+        "xai:grok-2-latest"           # xAI
+        "together:meta-llama/Llama-3-70b-chat-hf"
+        "fireworks:accounts/fireworks/models/llama-v3-70b-instruct"
+        "cerebras:llama3.1-70b"
+        "lmstudio:model-name"         # LM Studio (local, keyless)
+        "vllm:model-name"             # vLLM (local/self-hosted, keyless)
+        "simulated"                   # deterministic stub for tests
     """
     s = model_str.strip().lower()
 
@@ -63,6 +71,62 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
             kw["api_key"] = api_key
         return OpenAIModel(s.split(":", 1)[1], **kw)
 
+    if s.startswith("deepseek:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        kw = {"base_url": base_url or "https://api.deepseek.com/v1"}
+        if api_key:
+            kw["api_key"] = api_key
+        return OpenAIModel(s.split(":", 1)[1], **kw)
+
+    if s.startswith("mistral:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        kw = {"base_url": base_url or "https://api.mistral.ai/v1"}
+        if api_key:
+            kw["api_key"] = api_key
+        return OpenAIModel(s.split(":", 1)[1], **kw)
+
+    if s.startswith("xai:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        kw = {"base_url": base_url or "https://api.x.ai/v1"}
+        if api_key:
+            kw["api_key"] = api_key
+        return OpenAIModel(s.split(":", 1)[1], **kw)
+
+    if s.startswith("together:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        kw = {"base_url": base_url or "https://api.together.xyz/v1"}
+        if api_key:
+            kw["api_key"] = api_key
+        return OpenAIModel(s.split(":", 1)[1], **kw)
+
+    if s.startswith("fireworks:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        kw = {"base_url": base_url or "https://api.fireworks.ai/inference/v1"}
+        if api_key:
+            kw["api_key"] = api_key
+        return OpenAIModel(s.split(":", 1)[1], **kw)
+
+    if s.startswith("cerebras:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        kw = {"base_url": base_url or "https://api.cerebras.ai/v1"}
+        if api_key:
+            kw["api_key"] = api_key
+        return OpenAIModel(s.split(":", 1)[1], **kw)
+
+    if s.startswith("lmstudio:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        # LM Studio accepts any non-empty string as api_key
+        return OpenAIModel(s.split(":", 1)[1],
+                           api_key=api_key or "lm-studio",
+                           base_url=base_url or "http://localhost:1234/v1")
+
+    if s.startswith("vllm:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        # vLLM accepts any non-empty string as api_key
+        return OpenAIModel(s.split(":", 1)[1],
+                           api_key=api_key or "vllm",
+                           base_url=base_url or "http://localhost:8000/v1")
+
     if s.startswith("gpt") or s.startswith("o1") or s.startswith("o3"):
         from antcrew_engine.models.openai_model import OpenAIModel
         kw = {}
@@ -84,7 +148,8 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
     if not (s.startswith("claude") or s == "anthropic"):
         raise ValueError(
             f"Unknown model: {model_str!r}. "
-            "Supported prefixes: claude, gpt, o1, o3, openai:, ollama:, groq:, azure:, gemini:, moonshot:, simulated."
+            "Supported prefixes: claude, gpt, o1, o3, openai:, ollama:, groq:, azure:, gemini:, "
+            "moonshot:, deepseek:, mistral:, xai:, together:, fireworks:, cerebras:, lmstudio:, vllm:, simulated."
         )
     from antcrew_engine.models.anthropic_model import AnthropicModel
     model_id = None if s in ("claude", "anthropic") else s

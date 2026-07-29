@@ -71,6 +71,25 @@ _COST_TABLE: list[tuple[str, float, float]] = [
     ("mixtral",           0.24,   0.24),
     ("deepseek",          0.14,   0.28),
     ("mistral",           0.20,   0.60),
+    # Moonshot AI (Kimi) — CNY pricing converted to USD at ~7.25 CNY/USD
+    ("moonshot-v1-8k",    1.65,   1.65),
+    ("moonshot-v1-32k",   3.31,   3.31),
+    ("moonshot-v1-128k",  8.28,   8.28),
+    # DeepSeek
+    ("deepseek-reasoner",  0.55,   2.19),
+    ("deepseek-chat",      0.27,   1.10),
+    # Mistral AI (mistral substring already above at $0.20/$0.60 for small; add large)
+    ("mistral-large",      2.00,   6.00),
+    ("codestral",          0.30,   0.90),
+    # xAI Grok
+    ("grok-2-mini",        0.20,   0.40),
+    ("grok-2",             2.00,  10.00),
+    ("grok-beta",          5.00,  15.00),
+    # Cerebras (fast inference)
+    ("llama3.1-70b",       0.60,   0.60),
+    ("llama3.1-8b",        0.10,   0.10),
+    # Local providers (LM Studio, vLLM, Ollama) — no cloud cost
+    # Together AI / Fireworks — open-source models at hosted prices; falls through to llama/mixtral matches above
 ]
 
 # HTTP status codes that warrant a retry

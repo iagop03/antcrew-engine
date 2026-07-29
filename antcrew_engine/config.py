@@ -10,7 +10,7 @@ from typing import Optional
 from antcrew_engine.models.base import BaseLLM
 
 
-def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional[str] = None) -> BaseLLM:
+def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional[str] = None, base_url: Optional[str] = None) -> BaseLLM:
     """Parse a model string and return a configured LLM instance.
 
     Supported forms::
@@ -23,6 +23,7 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
         "groq:llama3-70b-8192"
         "azure:my-deployment"
         "gemini"                  # GeminiModel default
+        "moonshot:moonshot-v1-8k" # Moonshot AI / Kimi (OpenAI-compatible)
         "simulated"               # deterministic stub for tests
     """
     s = model_str.strip().lower()
@@ -45,11 +46,28 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
 
     if s.startswith("openai:"):
         from antcrew_engine.models.openai_model import OpenAIModel
-        return OpenAIModel(s.split(":", 1)[1], **({"api_key": api_key} if api_key else {}))
+        kw: dict = {}
+        if api_key:
+            kw["api_key"] = api_key
+        if base_url:
+            kw["base_url"] = base_url
+        return OpenAIModel(s.split(":", 1)[1], **kw)
+
+    if s.startswith("moonshot:"):
+        from antcrew_engine.models.openai_model import OpenAIModel
+        kw = {"base_url": base_url or "https://api.moonshot.cn/v1"}
+        if api_key:
+            kw["api_key"] = api_key
+        return OpenAIModel(s.split(":", 1)[1], **kw)
 
     if s.startswith("gpt") or s.startswith("o1") or s.startswith("o3"):
         from antcrew_engine.models.openai_model import OpenAIModel
-        return OpenAIModel(s, **({"api_key": api_key} if api_key else {}))
+        kw = {}
+        if api_key:
+            kw["api_key"] = api_key
+        if base_url:
+            kw["base_url"] = base_url
+        return OpenAIModel(s, **kw)
 
     if s.startswith("gemini"):
         from antcrew_engine.models.gemini_model import GeminiModel
@@ -63,7 +81,7 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
     if not (s.startswith("claude") or s == "anthropic"):
         raise ValueError(
             f"Unknown model: {model_str!r}. "
-            "Supported prefixes: claude, gpt, o1, o3, openai:, ollama:, groq:, azure:, gemini, simulated."
+            "Supported prefixes: claude, gpt, o1, o3, openai:, ollama:, groq:, azure:, gemini:, moonshot:, simulated."
         )
     from antcrew_engine.models.anthropic_model import AnthropicModel
     model_id = None if s in ("claude", "anthropic") else s

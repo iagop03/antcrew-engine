@@ -47,47 +47,62 @@ class Message(BaseModel):
 # Matched by substring of the lowercase model name.
 # ---------------------------------------------------------------------------
 _COST_TABLE: list[tuple[str, float, float]] = [
-    # Anthropic
-    ("claude-opus",      15.00,  75.00),
-    ("claude-sonnet",     3.00,  15.00),
-    ("claude-haiku",      0.25,   1.25),
-    # OpenAI — reasoning models (match before gpt-4o)
-    ("o3-mini",           1.10,   4.40),
-    ("o1-mini",           1.10,   4.40),
-    ("o1",               15.00,  60.00),
-    ("o3",               10.00,  40.00),
+    # Anthropic — specific versions first so they win over generic prefix matches
+    ("claude-opus-5",      15.00,  75.00),
+    ("claude-opus-4",      15.00,  75.00),
+    ("claude-sonnet-5",     3.00,  15.00),
+    ("claude-sonnet-4",     3.00,  15.00),
+    ("claude-haiku-4",      0.80,   4.00),   # claude-haiku-4-5 and above
+    # Anthropic — generic fallbacks (Claude 3.x)
+    ("claude-opus",        15.00,  75.00),
+    ("claude-sonnet",       3.00,  15.00),
+    ("claude-haiku",        0.25,   1.25),
+    # OpenAI — reasoning models (match before gpt-4o / o3)
+    ("o4-mini",             1.10,   4.40),
+    ("o3-mini",             1.10,   4.40),
+    ("o1-mini",             1.10,   4.40),
+    ("o1",                 15.00,  60.00),
+    ("o3",                 10.00,  40.00),
     # OpenAI — chat models
-    ("gpt-4o-mini",       0.15,   0.60),
-    ("gpt-4o",            2.50,  10.00),
-    ("gpt-4-turbo",      10.00,  30.00),
-    ("gpt-3.5",           0.50,   1.50),
-    # Google
-    ("gemini-1.5-pro",    1.25,   5.00),
-    ("gemini-1.5-flash",  0.075,  0.30),
-    ("gemini-2.0",        0.075,  0.30),
+    ("gpt-4.1-mini",        0.40,   1.60),
+    ("gpt-4.1-nano",        0.10,   0.40),
+    ("gpt-4.1",             2.00,   8.00),
+    ("gpt-4o-mini",         0.15,   0.60),
+    ("gpt-4o",              2.50,  10.00),
+    ("gpt-4-turbo",        10.00,  30.00),
+    ("gpt-3.5",             0.50,   1.50),
+    # Google — specific versions first
+    ("gemini-2.5-pro",      1.25,  10.00),
+    ("gemini-2.5-flash",    0.15,   0.60),
+    ("gemini-2.0-flash",    0.10,   0.40),
+    ("gemini-2.0",          0.10,   0.40),
+    ("gemini-1.5-pro",      1.25,   5.00),
+    ("gemini-1.5-flash",    0.075,  0.30),
     # Open-source / hosted
-    ("llama3-70b",        0.59,   0.79),
-    ("llama3-8b",         0.05,   0.08),
-    ("mixtral",           0.24,   0.24),
-    ("deepseek",          0.14,   0.28),
-    ("mistral",           0.20,   0.60),
+    ("llama3-70b",          0.59,   0.79),
+    ("llama3-8b",           0.05,   0.08),
+    ("mixtral",             0.24,   0.24),
+    ("mistral",             0.20,   0.60),
     # Moonshot AI (Kimi) — CNY pricing converted to USD at ~7.25 CNY/USD
-    ("moonshot-v1-8k",    1.65,   1.65),
-    ("moonshot-v1-32k",   3.31,   3.31),
-    ("moonshot-v1-128k",  8.28,   8.28),
-    # DeepSeek
-    ("deepseek-reasoner",  0.55,   2.19),
-    ("deepseek-chat",      0.27,   1.10),
-    # Mistral AI (mistral substring already above at $0.20/$0.60 for small; add large)
-    ("mistral-large",      2.00,   6.00),
-    ("codestral",          0.30,   0.90),
+    ("moonshot-v1-8k",      1.65,   1.65),
+    ("moonshot-v1-32k",     3.31,   3.31),
+    ("moonshot-v1-128k",    8.28,   8.28),
+    # DeepSeek — specific before generic
+    ("deepseek-reasoner",   0.55,   2.19),
+    ("deepseek-chat",       0.27,   1.10),
+    ("deepseek",            0.27,   1.10),
+    # Mistral AI
+    ("mistral-large",       2.00,   6.00),
+    ("codestral",           0.30,   0.90),
     # xAI Grok
-    ("grok-2-mini",        0.20,   0.40),
-    ("grok-2",             2.00,  10.00),
-    ("grok-beta",          5.00,  15.00),
+    ("grok-3-mini",         0.30,   0.50),
+    ("grok-3",              3.00,  15.00),
+    ("grok-2-mini",         0.20,   0.40),
+    ("grok-2",              2.00,  10.00),
+    ("grok-beta",           5.00,  15.00),
     # Cerebras (fast inference)
-    ("llama3.1-70b",       0.60,   0.60),
-    ("llama3.1-8b",        0.10,   0.10),
+    ("llama3.1-70b",        0.60,   0.60),
+    ("llama3.1-8b",         0.10,   0.10),
     # Local providers (LM Studio, vLLM, Ollama) — no cloud cost
     # Together AI / Fireworks — open-source models at hosted prices; falls through to llama/mixtral matches above
 ]

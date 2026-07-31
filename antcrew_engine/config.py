@@ -48,8 +48,17 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
         return OllamaModel(s.split(":", 1)[1], **kw)
 
     if s.startswith("groq:"):
+        if base_url:
+            from antcrew_engine.models.openai_model import OpenAIModel
+            kw = {"base_url": base_url}
+            if api_key:
+                kw["api_key"] = api_key
+            return OpenAIModel(s.split(":", 1)[1], **kw)
         from antcrew_engine.models.groq_model import GroqModel
-        return GroqModel(s.split(":", 1)[1])
+        kw = {}
+        if api_key:
+            kw["api_key"] = api_key
+        return GroqModel(s.split(":", 1)[1], **kw)
 
     if s.startswith("azure:"):
         from antcrew_engine.models.azure_openai_model import AzureOpenAIModel
@@ -127,7 +136,7 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
                            api_key=api_key or "vllm",
                            base_url=base_url or "http://localhost:8000/v1")
 
-    if s.startswith("gpt") or s.startswith("o1") or s.startswith("o3"):
+    if s.startswith("gpt") or s.startswith("o1") or s.startswith("o3") or s.startswith("o4"):
         from antcrew_engine.models.openai_model import OpenAIModel
         kw = {}
         if api_key:
@@ -137,18 +146,22 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
         return OpenAIModel(s, **kw)
 
     if s.startswith("gemini"):
+        if base_url:
+            # Proxy/BYOK with custom endpoint: use OpenAI-compatible interface
+            from antcrew_engine.models.openai_model import OpenAIModel
+            model_id = "gemini-1.5-flash" if s == "gemini" else s
+            return OpenAIModel(model_id, api_key=api_key or "gemini", base_url=base_url)
         from antcrew_engine.models.gemini_model import GeminiModel
-        return GeminiModel(s)
-
-    if s == "gemini":
-        from antcrew_engine.models.gemini_model import GeminiModel
-        return GeminiModel()
+        gemini_kw: dict = {}
+        if api_key:
+            gemini_kw["api_key"] = api_key
+        return GeminiModel(**gemini_kw) if s == "gemini" else GeminiModel(s, **gemini_kw)
 
     # Default: Anthropic / Claude (model strings starting with "claude" or the bare "anthropic")
     if not (s.startswith("claude") or s == "anthropic"):
         raise ValueError(
             f"Unknown model: {model_str!r}. "
-            "Supported prefixes: claude, gpt, o1, o3, openai:, ollama:, groq:, azure:, gemini:, "
+            "Supported prefixes: claude, gpt, o1, o3, o4, openai:, ollama:, groq:, azure:, gemini, "
             "moonshot:, deepseek:, mistral:, xai:, together:, fireworks:, cerebras:, lmstudio:, vllm:, simulated."
         )
     from antcrew_engine.models.anthropic_model import AnthropicModel

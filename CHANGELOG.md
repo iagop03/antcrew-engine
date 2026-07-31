@@ -2,6 +2,16 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.11] — 2026-07-31
+
+### Fixed
+- **Proxy mode: Anthropic** — `AnthropicModel` now accepts `base_url` kwarg; proxy-mode requests from the platform no longer hit `api.anthropic.com` directly with the proxy token as key (which caused 401s).
+- **Proxy mode: Groq** — `build_llm("groq:…")` now forwards `api_key` and, when `base_url` is set, uses `OpenAIModel` against the proxy's OpenAI-compatible endpoint instead of calling Groq natively.
+- **Proxy mode: Gemini** — merged the duplicate Gemini branch in `build_llm` (second branch was dead code shadowed by the first); when `base_url` is set, uses `OpenAIModel` to route through the proxy.
+- **Cost table** — updated `_COST_TABLE` with claude-opus-5/4, claude-sonnet-5/4, claude-haiku-4, o4-mini, gpt-4.1 family, gemini-2.5-pro/flash, gemini-2.0-flash, grok-3/grok-3-mini; specific version entries now take precedence over generic prefixes.
+
+---
+
 ## [0.3.10] — 2026-07-28
 
 ### Added

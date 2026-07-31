@@ -16,6 +16,7 @@ class AnthropicModel(BaseLLM):
         model: str = _DEFAULT_MODEL,
         api_key: Optional[str] = None,
         prompt_caching: bool = False,
+        base_url: Optional[str] = None,
     ) -> None:
         self.model = model
         self.prompt_caching = prompt_caching
@@ -30,10 +31,12 @@ class AnthropicModel(BaseLLM):
         headers: dict = {}
         if prompt_caching:
             headers["anthropic-beta"] = "prompt-caching-2024-07-31"
-        self._client = anthropic.Anthropic(
-            api_key=key,
-            **({"default_headers": headers} if headers else {}),
-        )
+        client_kw: dict = {"api_key": key}
+        if base_url:
+            client_kw["base_url"] = base_url
+        if headers:
+            client_kw["default_headers"] = headers
+        self._client = anthropic.Anthropic(**client_kw)
 
     def _build_system(self, system_parts: list[str]):
         """Return the system value for the API call.

@@ -153,8 +153,11 @@ def build_llm(model_str: str, *, prompt_caching: bool = False, api_key: Optional
         )
     from antcrew_engine.models.anthropic_model import AnthropicModel
     model_id = None if s in ("claude", "anthropic") else s
-    return AnthropicModel(
-        **({"model": model_id} if model_id else {}),
-        prompt_caching=prompt_caching,
-        **({"api_key": api_key} if api_key else {}),
-    )
+    kw = {}
+    if model_id:
+        kw["model"] = model_id
+    if api_key:
+        kw["api_key"] = api_key
+    if base_url:
+        kw["base_url"] = base_url
+    return AnthropicModel(prompt_caching=prompt_caching, **kw)

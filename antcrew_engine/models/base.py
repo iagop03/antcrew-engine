@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from antcrew.trace import TraceLog
 
+    from antcrew_engine.context.compressor import ContextCompressor
     from antcrew_engine.models.cache import LLMCache
 
 
@@ -166,6 +167,11 @@ class BaseLLM(ABC):
     # Trace — set by team when trace_log is attached
     trace: "Optional[TraceLog]" = None
     _trace_run_id: Optional[str] = None
+
+    # Context compression — opt-in; when both are set, _maybe_compress() will
+    # shrink variable context that exceeds budget_tokens before each call.
+    context_compressor: "Optional[ContextCompressor]" = None
+    context_budget_tokens: Optional[int] = None
 
     # ── Usage tracking ──────────────────────────────────────────────────────
 
@@ -393,6 +399,38 @@ class BaseLLM(ABC):
         else:
             self.cache = _LLMCache()
         return self
+
+    def _maybe_compress(self, text: str, *, label: str = "") -> str:
+        """Return *text* compressed if it exceeds context_budget_tokens, else unchanged.
+
+        This is an opt-in helper — callers pass variable context (e.g. a large
+        file) through this method before building the system prompt.  It has no
+        effect unless both ``context_compressor`` and ``context_budget_tokens``
+        are set on the instance.
+
+        The method NEVER touches cached blocks or transport-level content; it is
+        the caller's responsibility to decide which strings benefit from compression.
+        """
+        if self.context_compressor is None or self.context_budget_tokens is None:
+            return text
+
+        estimated_tokens = len(text) // 4
+        if estimated_tokens <= self.context_budget_tokens:
+            return text
+
+        result = self.context_compressor.compress(
+            text,
+            budget_tokens=self.context_budget_tokens,
+            file_path=label,
+        )
+        log.debug(
+            "context_compressed label=%r original_tokens=%d compressed_tokens=%d method=%s",
+            label,
+            result.original_tokens,
+            result.compressed_tokens,
+            result.method,
+        )
+        return result.text
 
     def with_fallback(self, *fallbacks: "BaseLLM") -> "BaseLLM":
         """Return a FallbackLLM that tries self first, then each fallback in order.

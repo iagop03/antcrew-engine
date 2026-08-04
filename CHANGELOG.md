@@ -2,6 +2,19 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.12] — 2026-08-04
+
+### Added
+
+- **`ContextCompressor` module** (`antcrew_engine.context`) — opt-in context budget management for `BaseLLM`. Two compressor implementations:
+  - `ASTCodeCompressor` — parses Python source with `ast`, preserves imports / class signatures / docstrings, progressively omits function bodies (private `_xxx` first, then public) until content fits within `budget_tokens`. Falls back to `TextSummaryCompressor` on non-Python input.
+  - `TextSummaryCompressor` — keeps first 30 + last 10 lines with an omission marker. Adjusts head/tail if content is shorter.
+  - `CompressedResult` dataclass records original/compressed token counts and the method used.
+
+- **`BaseLLM.context_compressor`** and **`BaseLLM.context_budget_tokens`** — two new opt-in fields (default `None`). When set, `BaseLLM._maybe_compress(text, *, label="")` compresses text exceeding the budget before it is used as variable context. No existing `complete`/`system` call paths are modified — callers opt in explicitly.
+
+---
+
 ## [0.3.11] — 2026-07-31
 
 ### Fixed

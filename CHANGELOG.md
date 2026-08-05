@@ -2,6 +2,36 @@
 
 All notable changes to antcrew-engine are documented here.
 
+## [0.3.14] — 2026-08-06
+
+### Fixed
+
+- **`OpenAIModel` — developer-friendly error on incompatible provider response** — when a provider
+  configured via `base_url` (deepseek:, mistral:, lmstudio:, custom, etc.) returns 0 choices or
+  an unexpected response shape, the adapter previously raised a bare `IndexError: list index out
+  of range` with no actionable context. It now raises a `ValueError` that names the model,
+  explains the most common causes (wrong model ID, misconfigured `base_url`, API key rejection,
+  tool-call-only response), and includes a truncated provider response for diagnosis. The
+  existing `_with_retry` / `_is_retryable` path is unaffected — only the final content extraction
+  step is wrapped.
+
+---
+
+## [0.3.13] — 2026-08-06
+
+### Added
+- **`CapabilityResult.tokens_in` / `tokens_out`** — two new integer fields (default `0`) for
+  input and output token counts. Additive, backward-compatible — existing code constructing
+  `CapabilityResult` without these fields continues to work. LLM-backed capabilities should
+  populate them from the provider response so they flow into platform analytics.
+- **`EventBusBridge` `agent.end` payload enriched** — the dict forwarded to the platform now
+  includes: `duration_ms` (integer milliseconds, alongside the existing `duration_s`),
+  `tokens_in`, `tokens_out`, `succeeded` (bool, `True` when `result.errors` is empty),
+  `errors` (list of error strings from the capability run). No schema migration required —
+  new fields are additive to the existing JSON payload.
+
+---
+
 ## [0.3.12] — 2026-08-04
 
 ### Added

@@ -53,6 +53,8 @@ class CapabilityResult:
     errors:              list[str]        = field(default_factory=list)
     execution_time:      float            = 0.0
     cost_usd:            float            = 0.0   # LLM cost for this capability run
+    tokens_in:           int              = 0     # prompt/input tokens consumed
+    tokens_out:          int              = 0     # completion/output tokens generated
     cache_read_tokens:   int              = 0     # tokens served from Anthropic prompt cache
     cache_write_tokens:  int              = 0     # tokens written to Anthropic prompt cache
 

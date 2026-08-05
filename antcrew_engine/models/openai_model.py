@@ -80,6 +80,27 @@ class OpenAIModel(BaseLLM):
     # Private helpers
     # ------------------------------------------------------------------
 
+    def _parse_content(self, response, *, context: str) -> str:
+        """Extract text content from a completions response with a developer-friendly error.
+
+        Raw IndexError/AttributeError here means the provider is not fully
+        OpenAI-compatible or returned an unexpected shape (empty choices, tool-call-only
+        response, HTML error page parsed as JSON, etc.).
+        """
+        choices = getattr(response, "choices", [])
+        if not choices:
+            raw = repr(response)[:600]
+            raise ValueError(
+                f"OpenAIModel({self._model!r}) — provider returned 0 choices ({context}).\n"
+                f"Common causes:\n"
+                f"  • Model ID '{self._model}' is not available at this endpoint\n"
+                f"  • base_url points to a non-OpenAI-compatible API or returns an error page\n"
+                f"  • API key was rejected before any output was generated\n"
+                f"  • Provider returned a non-text response (tool calls, refusal, empty stream)\n"
+                f"Provider response: {raw}"
+            )
+        return choices[0].message.content or ""
+
     def _complete_blocking(self, chat_msgs: list[dict], max_tokens: int, *, json_mode: bool = False) -> str:
         kwargs: dict = {
             "model": self._model,
@@ -95,7 +116,7 @@ class OpenAIModel(BaseLLM):
                 response.usage.prompt_tokens,
                 response.usage.completion_tokens,
             )
-        return response.choices[0].message.content or ""
+        return self._parse_content(response, context="blocking")
 
     def _complete_streaming(self, chat_msgs: list[dict], max_tokens: int) -> str:
         def _do_stream():
@@ -139,4 +160,4 @@ class OpenAIModel(BaseLLM):
                 response.usage.prompt_tokens,
                 response.usage.completion_tokens,
             )
-        return response.choices[0].message.content or ""
+        return self._parse_content(response, context="reasoning")
